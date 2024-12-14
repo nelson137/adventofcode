@@ -1,34 +1,60 @@
-pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
-    let answer = input.lines().filter(is_report_safe).count();
-    Box::new(answer)
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum LvlDelta {
+    Inc,
+    Dec,
+    Unsafe,
 }
 
-fn is_report_safe(line: &&str) -> bool {
-    let levels = line.split(' ').map(|lvl| lvl.parse::<i32>().unwrap());
+fn report_to_level_deltas(report: &str) -> impl Iterator<Item = LvlDelta> {
+    report
+        .split(' ')
+        .map(|lvl| lvl.parse::<i32>().unwrap())
+        .map_windows(|[a, b]| match *b - *a {
+            -3..=-1 => LvlDelta::Dec,
+            1..=3 => LvlDelta::Inc,
+            _ => LvlDelta::Unsafe,
+        })
+}
 
-    #[derive(Debug, PartialEq)]
-    enum LvlDelta {
-        Inc,
-        Dec,
-        Unsafe,
+pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
+    let mut safe_count = 0;
+
+    for mut level_deltas in input.lines().map(report_to_level_deltas) {
+        let delta = level_deltas.next().unwrap();
+        if delta == LvlDelta::Unsafe {
+            continue;
+        }
+
+        if level_deltas.all(|d| d == delta) {
+            safe_count += 1;
+        }
     }
 
-    let mut level_deltas = levels.map_windows(|[a, b]| match *b - *a {
-        -3..=-1 => LvlDelta::Dec,
-        1..=3 => LvlDelta::Inc,
-        _ => LvlDelta::Unsafe,
-    });
-
-    let delta = level_deltas.next().unwrap();
-    if delta == LvlDelta::Unsafe {
-        return false;
-    }
-
-    level_deltas.all(|d| d == delta)
+    Box::new(safe_count)
 }
 
 pub(super) fn part2(input: &str) -> Box<dyn std::fmt::Display> {
-    _ = input;
+    let mut safe_count = 0;
 
-    Box::new("_")
+    'reports: for level_deltas in input.lines().map(report_to_level_deltas) {
+        let mut did_dampen = false;
+        let mut delta = LvlDelta::Unsafe;
+
+        for d in level_deltas {
+            if d == LvlDelta::Unsafe || (delta != LvlDelta::Unsafe && d != delta) {
+                if did_dampen {
+                    continue 'reports;
+                } else {
+                    did_dampen = true;
+                }
+            }
+            if delta == LvlDelta::Unsafe {
+                delta = d;
+            }
+        }
+
+        safe_count += 1;
+    }
+
+    Box::new(safe_count)
 }
