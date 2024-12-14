@@ -1,4 +1,8 @@
-use std::{fs, path::Path};
+use std::{
+    fs,
+    io::{self, Read},
+    path::Path,
+};
 
 use anyhow::{Context, Result};
 use reqwest::{
@@ -45,4 +49,34 @@ pub(crate) fn get_input(day_i: u32) -> Result<String> {
 
         Ok(input)
     }
+}
+
+pub(crate) fn get_test_input(day_i: u32) -> Result<String> {
+    let test_input_path = Path::new(PUZZLE_INPUTS_DIR).join(format!("day{day_i}-test"));
+
+    fs::read_to_string(&test_input_path).with_context(|| {
+        format!(
+            "failed to read puzzle test input file: {}",
+            test_input_path.display()
+        )
+    })
+}
+
+pub(crate) fn set_test_input(day_i: u32) -> Result<()> {
+    println!("Enter test input below, press ^D when done");
+
+    let mut test_input = Vec::<u8>::new();
+    io::stdin()
+        .read_to_end(&mut test_input)
+        .with_context(|| "failed to read test input")?;
+
+    let test_input_path = Path::new(PUZZLE_INPUTS_DIR).join(format!("day{day_i}-test"));
+    fs::write(&test_input_path, test_input).with_context(|| {
+        format!(
+            "failed to write puzzle test input to file: {}",
+            test_input_path.display()
+        )
+    })?;
+
+    Ok(())
 }

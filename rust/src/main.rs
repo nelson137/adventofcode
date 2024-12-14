@@ -14,7 +14,13 @@ enum Cli {
         #[command(subcommand)]
         command: CliAuthCommand,
     },
+    Input {
+        #[command(subcommand)]
+        command: CliInputCommand,
+    },
     Run {
+        #[arg(long)]
+        test: bool,
         #[arg(value_parser = DayParser)]
         day: Day,
     },
@@ -24,7 +30,15 @@ impl Cli {
     fn run(self) -> Result<()> {
         match self {
             Self::Auth { command } => command.run(),
-            Self::Run { day } => days::execute_day(day.0),
+            Self::Input { command } => command.run(),
+            Self::Run { test, day } => {
+                let input = if test {
+                    input::get_test_input(day.0)?
+                } else {
+                    input::get_input(day.0)?
+                };
+                days::execute_day(day.0, input)
+            }
         }
     }
 }
@@ -54,6 +68,41 @@ impl CliAuthCommand {
                 if let Some(token) = auth::prompt_for_token()? {
                     auth::set_token(token)?;
                 }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Subcommand, Clone, Debug)]
+enum CliInputCommand {
+    Get {
+        #[arg(long)]
+        test: bool,
+
+        #[arg(value_parser = DayParser)]
+        day: Day,
+    },
+    SetTest {
+        #[arg(value_parser = DayParser)]
+        day: Day,
+    },
+}
+
+impl CliInputCommand {
+    fn run(self) -> Result<()> {
+        match self {
+            Self::Get { test, day } => {
+                if test {
+                    let day_test_input = input::get_test_input(day.0)?;
+                    print!("{day_test_input}");
+                } else {
+                    let day_input = input::get_input(day.0)?;
+                    print!("{day_input}");
+                }
+            }
+            Self::SetTest { day } => {
+                input::set_test_input(day.0)?;
             }
         }
         Ok(())
