@@ -35,4 +35,4 @@ macro_rules! day_modules {
     };
 }
 
-day_modules![day1, day2, day3, day4];
+day_modules![day1, day2, day3, day4, day5];
