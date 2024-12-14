@@ -1,4 +1,4 @@
-use std::iter;
+use std::{cmp::Ordering, iter};
 
 struct PrintUpdateOrganizer {
     max_page: usize,
@@ -49,17 +49,17 @@ impl PrintUpdateOrganizer {
             updates,
         }
     }
+}
 
-    fn update_is_valid(&self, update: &[u32]) -> bool {
-        for (i, u) in update.iter().copied().enumerate().rev() {
-            for &prev in &update[..i] {
-                if self.rules_adjacent[u as usize * self.max_page + prev as usize] {
-                    return false;
-                }
+fn update_is_valid(update: &[u32], rules_adjacent: &[bool], max_page: usize) -> bool {
+    for (i, u) in update.iter().copied().enumerate().rev() {
+        for &prev in &update[..i] {
+            if rules_adjacent[u as usize * max_page + prev as usize] {
+                return false;
             }
         }
-        true
     }
+    true
 }
 
 pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
@@ -68,7 +68,13 @@ pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
     let answer = print_organizer
         .updates
         .iter()
-        .filter(|update| print_organizer.update_is_valid(update))
+        .filter(|update| {
+            update_is_valid(
+                update,
+                &print_organizer.rules_adjacent,
+                print_organizer.max_page,
+            )
+        })
         .map(|update| update[update.len() / 2])
         .sum::<u32>();
 
@@ -76,7 +82,31 @@ pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
 }
 
 pub(super) fn part2(input: &str) -> Box<dyn std::fmt::Display> {
-    _ = input;
+    let mut print_organizer = PrintUpdateOrganizer::new(input);
 
-    Box::new("_")
+    let answer = print_organizer
+        .updates
+        .iter_mut()
+        .filter(|update| {
+            !update_is_valid(
+                update,
+                &print_organizer.rules_adjacent,
+                print_organizer.max_page,
+            )
+        })
+        .map(|update| {
+            update.sort_by(|&a, &b| {
+                if print_organizer.rules_adjacent
+                    [a as usize * print_organizer.max_page + b as usize]
+                {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
+            });
+            update[update.len() / 2]
+        })
+        .sum::<u32>();
+
+    Box::new(answer)
 }
