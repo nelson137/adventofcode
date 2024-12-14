@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
     let mut left = Vec::<u32>::new();
     let mut right = Vec::<u32>::new();
@@ -27,7 +29,24 @@ pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
 }
 
 pub(super) fn part2(input: &str) -> Box<dyn std::fmt::Display> {
-    _ = input;
+    let mut left = HashMap::<u32, u32>::new();
+    let mut right = HashMap::<u32, u32>::new();
 
-    Box::new("_")
+    for line in input.lines() {
+        let l = line[0..5].parse::<u32>().unwrap();
+        let r = line[8..13].parse::<u32>().unwrap();
+
+        let l_count = left.entry(l).or_default();
+        *l_count += 1;
+
+        let r_count = right.entry(r).or_default();
+        *r_count += 1;
+    }
+
+    let answer = left
+        .into_iter()
+        .map(|(k, v)| right.get(&k).copied().unwrap_or_default() * v * k)
+        .sum::<u32>();
+
+    Box::new(answer)
 }
