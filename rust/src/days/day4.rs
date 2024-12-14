@@ -164,6 +164,43 @@ impl<'input> WordSearch<'input> {
     fn count_xmas(&self) -> u32 {
         self.x_positions().map(|x_pos| self.probe_xmas(x_pos)).sum()
     }
+
+    fn a_positions(&self) -> impl Iterator<Item = Pos> {
+        self.table.iter().enumerate().flat_map(|(r, &line)| {
+            line.bytes()
+                .enumerate()
+                .filter_map(move |(c, b)| (b == b'A').then_some(Pos::new(r, c)))
+        })
+    }
+
+    fn probe_mas_x(&self, a: Pos) -> bool {
+        if a.col == 0 || a.row == 0 || a.col >= self.width - 1 || a.row >= self.height - 1 {
+            return false;
+        }
+
+        const MS: [u8; 2] = [b'M', b'S'];
+        const SM: [u8; 2] = [b'S', b'M'];
+
+        let nw_se_line = [self[a.nw1()], self[a.se1()]];
+        let has_nw_se_mas = nw_se_line == MS || nw_se_line == SM;
+        if !has_nw_se_mas {
+            return false;
+        }
+
+        let ne_sw_line = [self[a.ne1()], self[a.sw1()]];
+        let has_nw_se_mas = ne_sw_line == MS || ne_sw_line == SM;
+        if !has_nw_se_mas {
+            return false;
+        }
+
+        true
+    }
+
+    fn count_mas_x(&self) -> u32 {
+        self.a_positions()
+            .filter(|&a_pos| self.probe_mas_x(a_pos))
+            .count() as u32
+    }
 }
 
 impl Index<Pos> for WordSearch<'_> {
@@ -183,7 +220,9 @@ pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
 }
 
 pub(super) fn part2(input: &str) -> Box<dyn std::fmt::Display> {
-    _ = input;
+    let word_search = WordSearch::new(input);
 
-    Box::new("_")
+    let answer = word_search.count_mas_x();
+
+    Box::new(answer)
 }
