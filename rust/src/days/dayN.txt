@@ -1,0 +1,11 @@
+pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
+    _ = input;
+
+    Box::new("_")
+}
+
+pub(super) fn part2(input: &str) -> Box<dyn std::fmt::Display> {
+    _ = input;
+
+    Box::new("_")
+}
