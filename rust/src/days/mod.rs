@@ -37,4 +37,4 @@ macro_rules! day_modules {
     };
 }
 
-day_modules![day1];
+day_modules![day1, day2];

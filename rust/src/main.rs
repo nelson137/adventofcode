@@ -1,3 +1,5 @@
+#![feature(iter_map_windows)]
+
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
