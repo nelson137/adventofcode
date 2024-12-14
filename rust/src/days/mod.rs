@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 pub(crate) fn execute_day(day_i: u32) -> Result<()> {
-    let input = crate::inputs::get_input(day_i)?;
+    let input = crate::input::get_input(day_i)?;
 
     let day = DAY_EXECUTORS[day_i as usize];
     let answer1 = (day.0)(&input);

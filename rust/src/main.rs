@@ -5,7 +5,7 @@ use clap::{Parser, Subcommand};
 
 mod auth;
 mod days;
-mod inputs;
+mod input;
 
 #[derive(Parser, Clone, Debug)]
 #[command(version, about, long_about = None)]
@@ -50,7 +50,7 @@ impl CliAuthCommand {
                 }
             }
             Self::Set => {
-                inputs::create_inputs_dir()?;
+                input::create_inputs_dir()?;
                 if let Some(token) = auth::prompt_for_token()? {
                     auth::set_token(token)?;
                 }

@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 mod term;
 
 pub(crate) static TOKEN_PATH: LazyLock<PathBuf> =
-    LazyLock::new(|| PathBuf::from(crate::inputs::PUZZLE_INPUTS_DIR).join(".token"));
+    LazyLock::new(|| PathBuf::from(crate::input::PUZZLE_INPUTS_DIR).join(".token"));
 
 pub(crate) fn get_token() -> Result<String> {
     fs::read_to_string(&*TOKEN_PATH)
