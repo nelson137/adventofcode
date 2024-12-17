@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-type DayPartAnswer = Box<dyn ::std::fmt::Display>;
+pub(crate) type DayPartAnswer = Box<dyn ::std::fmt::Display>;
 type DayPartExecutor = for<'input> fn(&'input str) -> Option<DayPartAnswer>;
 
 macro_rules! day_modules {

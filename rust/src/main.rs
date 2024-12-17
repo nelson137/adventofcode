@@ -1,9 +1,10 @@
 #![feature(iter_map_windows)]
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use clap::{Args, Parser, Subcommand};
 
 mod auth;
+mod commit;
 mod days;
 mod input;
 
@@ -16,6 +17,7 @@ enum Cli {
         #[command(subcommand)]
         command: CliAuthCommand,
     },
+    Commit(CliCommitCommand),
     Input {
         #[command(subcommand)]
         command: CliInputCommand,
@@ -27,6 +29,7 @@ impl Cli {
     fn run(self) -> Result<()> {
         match self {
             Self::Auth { command } => command.run(),
+            Self::Commit(command) => command.run(),
             Self::Input { command } => command.run(),
             Self::Run(command) => command.run(),
         }
@@ -60,6 +63,69 @@ impl CliAuthCommand {
                 }
             }
         }
+        Ok(())
+    }
+}
+
+#[derive(Args, Clone, Debug)]
+struct CliCommitCommand {
+    #[arg(long)]
+    force: bool,
+
+    #[arg(value_parser = DayParser)]
+    day: Day,
+}
+
+impl CliCommitCommand {
+    fn run(self) -> Result<()> {
+        let input = input::get_input(self.day.0)?;
+
+        let (Some(answer1), Some(answer2)) = days::execute_day(self.day.0, input)? else {
+            bail!("days can only be committed when both parts are solved");
+        };
+
+        let existing_commit = commit::get_existing_commit(self.day.0)?;
+        let commit = commit::DayAnswersCommit::new(&answer1, &answer2);
+
+        if let Some(existing_commit) = existing_commit {
+            if commit == existing_commit {
+                println!("Day {} is already commited", self.day.0);
+                println!("Answers match");
+            } else if self.force {
+                println!("1: {}", commit.answer1.trim());
+                println!("2: {}", commit.answer2.trim());
+                commit::write_day_answers(self.day.0, &commit)?;
+            } else {
+                eprintln!(
+                    "Day {} is already committed but the answers do not match",
+                    self.day.0
+                );
+                eprintln!("Use `--force` to overwrite");
+                if commit.answer1_checksum != existing_commit.answer1_checksum {
+                    eprintln!();
+                    eprintln!("Part 1:");
+                    eprintln!("<<<<<<< commited answer");
+                    eprintln!("{}", existing_commit.answer1.trim());
+                    eprintln!("=======");
+                    eprintln!("{}", commit.answer1.trim());
+                    eprintln!(">>>>>>> current run answer");
+                }
+                if commit.answer2_checksum != existing_commit.answer2_checksum {
+                    eprintln!();
+                    eprintln!("Part 2:");
+                    eprintln!("<<<<<<< commited answer");
+                    eprintln!("{}", existing_commit.answer2.trim());
+                    eprintln!("=======");
+                    eprintln!("{}", commit.answer2.trim());
+                    eprintln!(">>>>>>> current run answer");
+                }
+            }
+        } else {
+            println!("1: {}", commit.answer1.trim());
+            println!("2: {}", commit.answer2.trim());
+            commit::write_day_answers(self.day.0, &commit)?;
+        }
+
         Ok(())
     }
 }
