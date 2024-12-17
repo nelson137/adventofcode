@@ -1,15 +1,6 @@
 use anyhow::Result;
 
-pub(crate) fn execute_day(day_i: u32, input: String) -> Result<()> {
-    let day = DAY_EXECUTORS[day_i as usize];
-    let answer1 = (day.0)(&input);
-    let answer2 = (day.1)(&input);
-
-    println!("1: {answer1}");
-    println!("2: {answer2}");
-
-    Ok(())
-}
+type DayPartExecutor = for<'input> fn(&'input str) -> Box<dyn ::std::fmt::Display>;
 
 macro_rules! day_modules {
     ($( $day:ident ),+ $(,)?) => {
@@ -21,18 +12,22 @@ macro_rules! day_modules {
             stringify!($day)
         ),+];
 
-        fn __day0(_: &str) -> Box<dyn std::fmt::Display> {
-            Box::new(0_u32)
-        }
-
-        static DAY_EXECUTORS: &[(
-            for<'input> fn(&'input str) -> Box<dyn std::fmt::Display>,
-            for<'input> fn(&'input str) -> Box<dyn std::fmt::Display>
-        )] = &[
-            (__day0, __day0),
-            $( (self::$day::part1, self::$day::part2) ),+
-        ];
+        static DAY_EXECUTORS: &[(DayPartExecutor, DayPartExecutor)] = &[$(
+            (self::$day::part1, self::$day::part2)
+        ),+];
     };
 }
 
 day_modules![day1, day2, day3, day4, day5];
+
+pub(crate) fn execute_day(day_i: u32, input: String) -> Result<()> {
+    let executors = DAY_EXECUTORS[(day_i - 1) as usize];
+
+    let answer1 = (executors.0)(&input);
+    let answer2 = (executors.1)(&input);
+
+    println!("1: {answer1}");
+    println!("2: {answer2}");
+
+    Ok(())
+}
