@@ -7,6 +7,8 @@ mod auth;
 mod days;
 mod input;
 
+pub(crate) static PUZZLE_DIR: &str = env!("PUZZLE_DIR");
+
 #[derive(Parser, Clone, Debug)]
 #[command(version, about, long_about = None)]
 enum Cli {

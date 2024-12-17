@@ -1,7 +1,8 @@
 use std::{
     fs,
     io::{self, Read},
-    path::Path,
+    path::{Path, PathBuf},
+    sync::LazyLock,
 };
 
 use anyhow::{Context, Result};
@@ -10,19 +11,20 @@ use reqwest::{
     header as H,
 };
 
-pub(crate) static PUZZLE_INPUTS_DIR: &str = env!("PUZZLE_INPUTS_DIR");
+pub(crate) static PUZZLE_INPUTS_DIR: LazyLock<PathBuf> =
+    LazyLock::new(|| Path::new(crate::PUZZLE_DIR).join("inputs"));
 
 pub(crate) fn create_inputs_dir() -> Result<()> {
-    fs::create_dir_all(PUZZLE_INPUTS_DIR).with_context(|| {
+    fs::create_dir_all(&*PUZZLE_INPUTS_DIR).with_context(|| {
         format!(
             "failed to create puzzle inputs directory: {}",
-            PUZZLE_INPUTS_DIR
+            PUZZLE_INPUTS_DIR.display()
         )
     })
 }
 
 pub(crate) fn get_input(day_i: u32) -> Result<String> {
-    let input_path = Path::new(PUZZLE_INPUTS_DIR).join(format!("day{day_i}"));
+    let input_path = PUZZLE_INPUTS_DIR.join(format!("day{day_i}"));
 
     if input_path.exists() {
         fs::read_to_string(&input_path)
@@ -52,7 +54,7 @@ pub(crate) fn get_input(day_i: u32) -> Result<String> {
 }
 
 pub(crate) fn get_test_input(day_i: u32) -> Result<String> {
-    let test_input_path = Path::new(PUZZLE_INPUTS_DIR).join(format!("day{day_i}-test"));
+    let test_input_path = PUZZLE_INPUTS_DIR.join(format!("day{day_i}-test"));
 
     fs::read_to_string(&test_input_path).with_context(|| {
         format!(
@@ -70,7 +72,7 @@ pub(crate) fn set_test_input(day_i: u32) -> Result<()> {
         .read_to_end(&mut test_input)
         .with_context(|| "failed to read test input")?;
 
-    let test_input_path = Path::new(PUZZLE_INPUTS_DIR).join(format!("day{day_i}-test"));
+    let test_input_path = PUZZLE_INPUTS_DIR.join(format!("day{day_i}-test"));
     fs::write(&test_input_path, test_input).with_context(|| {
         format!(
             "failed to write puzzle test input to file: {}",
