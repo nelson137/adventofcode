@@ -37,7 +37,17 @@ impl Cli {
                 } else {
                     input::get_input(day.0)?
                 };
-                days::execute_day(day.0, input)
+                let (answer1, answer2) = days::execute_day(day.0, input)?;
+
+                if let Some(answer) = answer1.as_deref() {
+                    println!("1: {answer}");
+                }
+
+                if let Some(answer) = answer2.as_deref() {
+                    println!("2: {answer}");
+                }
+
+                Ok(())
             }
         }
     }
