@@ -1,7 +1,7 @@
 #![feature(iter_map_windows)]
 
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 mod auth;
 mod days;
@@ -18,12 +18,7 @@ enum Cli {
         #[command(subcommand)]
         command: CliInputCommand,
     },
-    Run {
-        #[arg(long)]
-        test: bool,
-        #[arg(value_parser = DayParser)]
-        day: Day,
-    },
+    Run(CliRunCommand),
 }
 
 impl Cli {
@@ -31,24 +26,7 @@ impl Cli {
         match self {
             Self::Auth { command } => command.run(),
             Self::Input { command } => command.run(),
-            Self::Run { test, day } => {
-                let input = if test {
-                    input::get_test_input(day.0)?
-                } else {
-                    input::get_input(day.0)?
-                };
-                let (answer1, answer2) = days::execute_day(day.0, input)?;
-
-                if let Some(answer) = answer1.as_deref() {
-                    println!("1: {answer}");
-                }
-
-                if let Some(answer) = answer2.as_deref() {
-                    println!("2: {answer}");
-                }
-
-                Ok(())
-            }
+            Self::Run(command) => command.run(),
         }
     }
 }
@@ -115,6 +93,36 @@ impl CliInputCommand {
                 input::set_test_input(day.0)?;
             }
         }
+        Ok(())
+    }
+}
+
+#[derive(Args, Clone, Debug)]
+struct CliRunCommand {
+    #[arg(long)]
+    test: bool,
+
+    #[arg(value_parser = DayParser)]
+    day: Day,
+}
+
+impl CliRunCommand {
+    fn run(self) -> Result<()> {
+        let input = if self.test {
+            input::get_test_input(self.day.0)?
+        } else {
+            input::get_input(self.day.0)?
+        };
+        let (answer1, answer2) = days::execute_day(self.day.0, input)?;
+
+        if let Some(answer) = answer1.as_deref() {
+            println!("1: {answer}");
+        }
+
+        if let Some(answer) = answer2.as_deref() {
+            println!("2: {answer}");
+        }
+
         Ok(())
     }
 }
