@@ -92,8 +92,8 @@ impl CliCommitCommand {
                 println!("Day {} is already commited", self.day.0);
                 println!("Answers match");
             } else if self.force {
-                println!("1: {}", commit.answer1.trim());
-                println!("2: {}", commit.answer2.trim());
+                println!("Part 1: {}", commit.answer1.trim());
+                println!("Part 2: {}", commit.answer2.trim());
                 commit::write_day_answers(self.day.0, &commit)?;
             } else {
                 eprintln!(
@@ -121,8 +121,8 @@ impl CliCommitCommand {
                 }
             }
         } else {
-            println!("1: {}", commit.answer1.trim());
-            println!("2: {}", commit.answer2.trim());
+            println!("Part 1: {}", commit.answer1.trim());
+            println!("Part 2: {}", commit.answer2.trim());
             commit::write_day_answers(self.day.0, &commit)?;
         }
 
@@ -184,11 +184,11 @@ impl CliRunCommand {
         let (answer1, answer2) = days::execute_day(self.day.0, input)?;
 
         if let Some(answer) = answer1.as_deref() {
-            println!("1: {answer}");
+            println!("Part 1: {answer}");
         }
 
         if let Some(answer) = answer2.as_deref() {
-            println!("2: {answer}");
+            println!("Part 2: {answer}");
         }
 
         Ok(())
