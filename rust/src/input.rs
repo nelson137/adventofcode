@@ -65,6 +65,8 @@ pub(crate) fn get_test_input(day_i: u32) -> Result<String> {
 }
 
 pub(crate) fn set_test_input(day_i: u32) -> Result<()> {
+    create_inputs_dir()?;
+
     println!("Enter test input below, press ^D when done");
 
     let mut test_input = Vec::<u8>::new();
