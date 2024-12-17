@@ -35,7 +35,7 @@ macro_rules! day_executors {
     };
 }
 
-day_modules![day1, day2, day3, day4, day5];
+day_modules![day1, day2, day3, day4, day5, day6];
 
 pub(crate) fn execute_day(
     day_i: u32,
