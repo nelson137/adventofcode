@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
+pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let mut left = Vec::<u32>::new();
     let mut right = Vec::<u32>::new();
 
@@ -25,10 +25,10 @@ pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
         })
         .sum::<u32>();
 
-    Box::new(answer)
+    Some(Box::new(answer))
 }
 
-pub(super) fn part2(input: &str) -> Box<dyn std::fmt::Display> {
+pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let mut left = HashMap::<u32, u32>::new();
     let mut right = HashMap::<u32, u32>::new();
 
@@ -48,5 +48,5 @@ pub(super) fn part2(input: &str) -> Box<dyn std::fmt::Display> {
         .map(|(k, v)| right.get(&k).copied().unwrap_or_default() * v * k)
         .sum::<u32>();
 
-    Box::new(answer)
+    Some(Box::new(answer))
 }

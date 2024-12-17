@@ -1,6 +1,6 @@
 use regex::Regex;
 
-pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
+pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let args_re = Regex::new(r"mul\((?<a>\d+),(?<b>\d+)\)").unwrap();
 
     let answer = args_re
@@ -12,10 +12,10 @@ pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
         })
         .sum::<u32>();
 
-    Box::new(answer)
+    Some(Box::new(answer))
 }
 
-pub(super) fn part2(input: &str) -> Box<dyn std::fmt::Display> {
+pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let args_re =
         Regex::new(r"(?<do>do\(\))|(?<dont>don't\(\))|(mul\((?<a>\d+),(?<b>\d+)\))").unwrap();
 
@@ -36,5 +36,5 @@ pub(super) fn part2(input: &str) -> Box<dyn std::fmt::Display> {
         }
     }
 
-    Box::new(sum)
+    Some(Box::new(sum))
 }

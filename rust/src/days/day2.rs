@@ -16,7 +16,7 @@ fn report_to_level_deltas(report: &str) -> impl Iterator<Item = LvlDelta> {
         })
 }
 
-pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
+pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let mut safe_count = 0;
 
     for mut level_deltas in input.lines().map(report_to_level_deltas) {
@@ -30,10 +30,10 @@ pub(super) fn part1(input: &str) -> Box<dyn std::fmt::Display> {
         }
     }
 
-    Box::new(safe_count)
+    Some(Box::new(safe_count))
 }
 
-pub(super) fn part2(input: &str) -> Box<dyn std::fmt::Display> {
+pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let mut safe_count = 0;
 
     'reports: for level_deltas in input.lines().map(report_to_level_deltas) {
@@ -56,5 +56,5 @@ pub(super) fn part2(input: &str) -> Box<dyn std::fmt::Display> {
         safe_count += 1;
     }
 
-    Box::new(safe_count)
+    Some(Box::new(safe_count))
 }
