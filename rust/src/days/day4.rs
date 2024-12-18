@@ -2,6 +2,11 @@ use std::{fmt, ops::Index};
 
 use paste::paste;
 
+crate::day_executors! {
+    [part1]
+    [part2]
+}
+
 #[derive(Clone, Copy, Debug)]
 struct Pos {
     row: usize,
