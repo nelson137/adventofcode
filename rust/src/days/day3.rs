@@ -1,5 +1,10 @@
 use regex::Regex;
 
+crate::day_executors! {
+    [part1]
+    [part2]
+}
+
 pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let args_re = Regex::new(r"mul\((?<a>\d+),(?<b>\d+)\)").unwrap();
 

@@ -2,7 +2,9 @@ use anyhow::Result;
 use criterion::{BenchmarkId, Criterion};
 
 pub(crate) type DayPartAnswer = Box<dyn ::std::fmt::Display>;
-type DayPartExecutor = for<'input> fn(&'input str) -> Option<DayPartAnswer>;
+type DayPartExecutorFn = for<'input> fn(&'input str) -> Option<DayPartAnswer>;
+type DayPartExecutors = &'static [(&'static str, DayPartExecutorFn)];
+type DayExecutors = (DayPartExecutors, DayPartExecutors);
 
 macro_rules! day_modules {
     ($( $day:ident ),+ $(,)?) => {
@@ -14,9 +16,22 @@ macro_rules! day_modules {
             stringify!($day)
         ),+];
 
-        static DAY_EXECUTORS: &[(DayPartExecutor, DayPartExecutor)] = &[$(
-            (self::$day::part1, self::$day::part2)
+        static DAY_EXECUTORS: &[DayExecutors] = &[$(
+            self::$day::EXECUTORS
         ),+];
+    };
+}
+
+#[macro_export]
+macro_rules! day_executors {
+    (
+        [$( $ex1:ident ),+ $(,)?]
+        [$( $ex2:ident ),+ $(,)?]
+    ) => {
+        pub(super) static EXECUTORS: super::DayExecutors = (
+            &[$( (stringify!($ex1), $ex1) ),+],
+            &[$( (stringify!($ex2), $ex2) ),+],
+        );
     };
 }
 
@@ -28,28 +43,34 @@ pub(crate) fn execute_day(
 ) -> Result<(Option<DayPartAnswer>, Option<DayPartAnswer>)> {
     let executors = DAY_EXECUTORS[(day_i - 1) as usize];
 
-    let answer1 = (executors.0)(&input);
-    let answer2 = (executors.1)(&input);
+    let answer1 = (executors.0[0].1)(&input);
+    let answer2 = (executors.1[0].1)(&input);
 
     Ok((answer1, answer2))
 }
 
 pub(crate) fn bench_day(c: &mut Criterion, day_i: u32, input: String) {
-    let executors = DAY_EXECUTORS[(day_i - 1) as usize];
+    let day_executors = DAY_EXECUTORS[(day_i - 1) as usize];
 
-    let mut group = c.benchmark_group(format!("Day-{day_i}"));
+    {
+        let mut group = c.benchmark_group(format!("Day-{day_i}/Part-1"));
+        for executor in day_executors.0 {
+            group.bench_with_input(
+                BenchmarkId::new(executor.0, "puzzle-input"),
+                &*input,
+                |b, i| b.iter(|| (executor.1)(i)),
+            );
+        }
+    }
 
-    group.bench_with_input(
-        BenchmarkId::new("Part-1", "puzzle-input"),
-        &*input,
-        |b, i| b.iter(|| (executors.0)(i)),
-    );
-
-    group.bench_with_input(
-        BenchmarkId::new("Part-2", "puzzle-input"),
-        &*input,
-        |b, i| b.iter(|| (executors.1)(i)),
-    );
-
-    group.finish();
+    {
+        let mut group = c.benchmark_group(format!("Day-{day_i}/Part-2"));
+        for executor in day_executors.1 {
+            group.bench_with_input(
+                BenchmarkId::new(executor.0, "puzzle-input"),
+                &*input,
+                |b, i| b.iter(|| (executor.1)(i)),
+            );
+        }
+    }
 }

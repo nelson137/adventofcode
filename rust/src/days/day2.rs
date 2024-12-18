@@ -1,3 +1,8 @@
+crate::day_executors! {
+    [part1]
+    [part2]
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum LvlDelta {
     Inc,

@@ -1,5 +1,10 @@
 use std::{cmp::Ordering, iter};
 
+crate::day_executors! {
+    [part1]
+    [part2]
+}
+
 fn parse(input: &str) -> (PrintRules, Vec<Vec<u32>>) {
     let mut rules = Vec::<(u32, u32)>::new();
     let mut updates = Vec::<Vec<u32>>::new();
