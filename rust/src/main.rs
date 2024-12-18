@@ -10,6 +10,14 @@ mod input;
 
 pub(crate) static PUZZLE_DIR: &str = env!("PUZZLE_DIR");
 
+fn main() -> Result<()> {
+    Cli::parse().run()
+}
+
+// ###################################################################
+// # CLI
+// ###################################################################
+
 #[derive(Parser, Clone, Debug)]
 #[command(version, about, long_about = None)]
 enum Cli {
@@ -37,6 +45,10 @@ impl Cli {
         }
     }
 }
+
+// ###################################################################
+// # CLI - Auth
+// ###################################################################
 
 #[derive(Subcommand, Clone, Debug)]
 enum CliAuthCommand {
@@ -69,6 +81,10 @@ impl CliAuthCommand {
     }
 }
 
+// ###################################################################
+// # CLI - Bench
+// ###################################################################
+
 #[derive(Args, Clone, Debug)]
 struct CliBenchCommand {
     #[arg(value_parser = DayParser)]
@@ -86,6 +102,10 @@ impl CliBenchCommand {
         Ok(())
     }
 }
+
+// ###################################################################
+// # CLI - Commit
+// ###################################################################
 
 #[derive(Args, Clone, Debug)]
 struct CliCommitCommand {
@@ -150,6 +170,10 @@ impl CliCommitCommand {
     }
 }
 
+// ###################################################################
+// # CLI - Input
+// ###################################################################
+
 #[derive(Subcommand, Clone, Debug)]
 enum CliInputCommand {
     Get {
@@ -185,6 +209,10 @@ impl CliInputCommand {
     }
 }
 
+// ###################################################################
+// # CLI - Run
+// ###################################################################
+
 #[derive(Args, Clone, Debug)]
 struct CliRunCommand {
     #[arg(long)]
@@ -215,6 +243,10 @@ impl CliRunCommand {
     }
 }
 
+// ###################################################################
+// # Data
+// ###################################################################
+
 #[derive(Clone, Copy, Debug)]
 struct Day(u32);
 
@@ -235,8 +267,4 @@ impl clap::builder::TypedValueParser for DayParser {
         let n = day[3..].parse().unwrap();
         Ok(Day(n))
     }
-}
-
-fn main() -> Result<()> {
-    Cli::parse().run()
 }
