@@ -1,4 +1,5 @@
 use anyhow::Result;
+use criterion::{BenchmarkId, Criterion};
 
 pub(crate) type DayPartAnswer = Box<dyn ::std::fmt::Display>;
 type DayPartExecutor = for<'input> fn(&'input str) -> Option<DayPartAnswer>;
@@ -31,4 +32,24 @@ pub(crate) fn execute_day(
     let answer2 = (executors.1)(&input);
 
     Ok((answer1, answer2))
+}
+
+pub(crate) fn bench_day(c: &mut Criterion, day_i: u32, input: String) {
+    let executors = DAY_EXECUTORS[(day_i - 1) as usize];
+
+    let mut group = c.benchmark_group(format!("Day-{day_i}"));
+
+    group.bench_with_input(
+        BenchmarkId::new("Part-1", "puzzle-input"),
+        &*input,
+        |b, i| b.iter(|| (executors.0)(i)),
+    );
+
+    group.bench_with_input(
+        BenchmarkId::new("Part-2", "puzzle-input"),
+        &*input,
+        |b, i| b.iter(|| (executors.1)(i)),
+    );
+
+    group.finish();
 }

@@ -17,6 +17,7 @@ enum Cli {
         #[command(subcommand)]
         command: CliAuthCommand,
     },
+    Bench(CliBenchCommand),
     Commit(CliCommitCommand),
     Input {
         #[command(subcommand)]
@@ -29,6 +30,7 @@ impl Cli {
     fn run(self) -> Result<()> {
         match self {
             Self::Auth { command } => command.run(),
+            Self::Bench(command) => command.run(),
             Self::Commit(command) => command.run(),
             Self::Input { command } => command.run(),
             Self::Run(command) => command.run(),
@@ -63,6 +65,24 @@ impl CliAuthCommand {
                 }
             }
         }
+        Ok(())
+    }
+}
+
+#[derive(Args, Clone, Debug)]
+struct CliBenchCommand {
+    #[arg(value_parser = DayParser)]
+    day: Day,
+}
+
+impl CliBenchCommand {
+    fn run(self) -> Result<()> {
+        let input = input::get_input(self.day.0)?;
+        let mut criterion = criterion::Criterion::default();
+        days::bench_day(&mut criterion, self.day.0, input);
+
+        criterion::Criterion::default().final_summary();
+
         Ok(())
     }
 }
