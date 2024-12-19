@@ -12,7 +12,7 @@ crate::day_executors! {
 enum Cell {
     Obstruction,
     Empty,
-    EmptyVisited,
+    EmptyVisited(Direction),
 }
 
 struct Map {
@@ -32,11 +32,11 @@ impl Map {
                     Cell::Empty if cell_cursor == cursor => {
                         print!("\x1b[103m\x1b[30m.\x1b[0m")
                     }
-                    Cell::EmptyVisited if cell_cursor == cursor => {
+                    Cell::EmptyVisited(_) if cell_cursor == cursor => {
                         print!("\x1b[103m\x1b[30mo\x1b[0m")
                     }
                     Cell::Empty => print!("."),
-                    Cell::EmptyVisited => print!("o"),
+                    Cell::EmptyVisited(_) => print!("o"),
                 }
             }
             println!();
@@ -46,6 +46,23 @@ impl Map {
     fn contains_cursor(&self, cursor: Cursor) -> bool {
         (0..self.height as isize).contains(&cursor.row)
             && (0..self.width as isize).contains(&cursor.col)
+    }
+
+    fn walk_from(&mut self, mut cursor: Cursor) {
+        let mut direction = Direction::default();
+
+        loop {
+            let next = cursor.move_in(direction);
+            if !self.contains_cursor(next) {
+                break;
+            }
+            if self[next] == Cell::Obstruction {
+                direction = direction.rotate();
+            } else {
+                cursor = next;
+                self[cursor] = Cell::EmptyVisited(direction);
+            }
+        }
     }
 }
 
@@ -136,7 +153,7 @@ fn parse(input: &str) -> (Map, Cursor) {
             if cell == b'#' {
                 grid[r][c] = Cell::Obstruction;
             } else if cell == b'^' {
-                grid[r][c] = Cell::EmptyVisited;
+                grid[r][c] = Cell::EmptyVisited(Direction::default());
                 cursor = Cursor::new(r, c);
             }
         }
@@ -152,7 +169,7 @@ fn parse(input: &str) -> (Map, Cursor) {
     )
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 enum Direction {
     #[default]
     North,
@@ -173,21 +190,9 @@ impl Direction {
 }
 
 pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    let (mut map, mut cursor) = parse(input);
-    let mut direction = Direction::default();
+    let (mut map, cursor) = parse(input);
 
-    loop {
-        let next = cursor.move_in(direction);
-        if !map.contains_cursor(next) {
-            break;
-        }
-        if map[next] == Cell::Obstruction {
-            direction = direction.rotate();
-        } else {
-            cursor = next;
-            map[cursor] = Cell::EmptyVisited;
-        }
-    }
+    map.walk_from(cursor);
 
     let answer = map
         .grid
@@ -195,7 +200,7 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
         .map(|row| {
             row.iter()
                 .copied()
-                .filter(|cell| *cell == Cell::EmptyVisited)
+                .filter(|cell| matches!(*cell, Cell::EmptyVisited(_)))
                 .count()
         })
         .sum::<usize>();
