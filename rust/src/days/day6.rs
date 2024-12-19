@@ -4,7 +4,7 @@ use std::{
 };
 
 crate::day_executors! {
-    [part1, part1_with_inverted]
+    [part1]
     [part2]
 }
 
@@ -19,7 +19,6 @@ struct Map {
     height: usize,
     width: usize,
     grid: Vec<Vec<Cell>>,
-    grid_inverted: Vec<Vec<Cell>>,
 }
 
 impl Map {
@@ -129,7 +128,6 @@ fn parse(input: &str) -> (Map, Cursor) {
     let width = input.lines().next().unwrap().trim().len();
 
     let mut grid = vec![vec![Cell::Empty; width]; height];
-    let mut grid_inverted = vec![vec![Cell::Empty; width]; height];
 
     let mut cursor = Cursor::default();
 
@@ -137,10 +135,8 @@ fn parse(input: &str) -> (Map, Cursor) {
         for (c, cell) in line.as_bytes().iter().copied().enumerate() {
             if cell == b'#' {
                 grid[r][c] = Cell::Obstruction;
-                grid_inverted[c][r] = Cell::Obstruction;
             } else if cell == b'^' {
                 grid[r][c] = Cell::EmptyVisited;
-                grid_inverted[c][r] = Cell::EmptyVisited;
                 cursor = Cursor::new(r, c);
             }
         }
@@ -151,7 +147,6 @@ fn parse(input: &str) -> (Map, Cursor) {
             height,
             width,
             grid,
-            grid_inverted,
         },
         cursor,
     )
@@ -167,10 +162,6 @@ enum Direction {
 }
 
 impl Direction {
-    fn is_ns(self) -> bool {
-        matches!(self, Self::North | Self::South)
-    }
-
     fn rotate(self) -> Self {
         match self {
             Self::North => Self::East,
@@ -195,49 +186,6 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
         } else {
             cursor = next;
             map[cursor] = Cell::EmptyVisited;
-        }
-    }
-
-    let answer = map
-        .grid
-        .iter()
-        .map(|row| {
-            row.iter()
-                .copied()
-                .filter(|cell| *cell == Cell::EmptyVisited)
-                .count()
-        })
-        .sum::<usize>();
-
-    Some(Box::new(answer))
-}
-
-pub(super) fn part1_with_inverted(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    let (mut map, mut cursor) = parse(input);
-    let mut direction = Direction::default();
-
-    loop {
-        let next = cursor.move_in(direction);
-        if !map.contains_cursor(next) {
-            break;
-        }
-        #[allow(clippy::collapsible_else_if)]
-        if direction.is_ns() {
-            if map.grid_inverted[next.col as usize][next.row as usize] == Cell::Obstruction {
-                direction = direction.rotate();
-            } else {
-                cursor = next;
-                map.grid[next.row as usize][next.col as usize] = Cell::EmptyVisited;
-                map.grid_inverted[next.col as usize][next.row as usize] = Cell::EmptyVisited;
-            }
-        } else {
-            if map.grid[next.row as usize][next.col as usize] == Cell::Obstruction {
-                direction = direction.rotate();
-            } else {
-                cursor = next;
-                map.grid[next.row as usize][next.col as usize] = Cell::EmptyVisited;
-                map.grid_inverted[next.col as usize][next.row as usize] = Cell::EmptyVisited;
-            }
         }
     }
 
