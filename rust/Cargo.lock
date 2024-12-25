@@ -22,6 +22,7 @@ name = "adventofcode"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bitflags",
  "clap",
  "crc",
  "criterion",

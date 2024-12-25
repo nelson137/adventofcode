@@ -6,6 +6,7 @@ rust-version = "1.85"
 
 [dependencies]
 anyhow = "1.0.94"
+bitflags = "2.6.0"
 clap = { version = "4.5.23", features = ["derive"] }
 crc = "3.2.1"
 criterion = "0.5.1"

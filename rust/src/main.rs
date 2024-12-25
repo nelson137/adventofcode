@@ -2,6 +2,7 @@
 
 use anyhow::{Result, bail};
 use clap::{Args, Parser, Subcommand};
+use crossterm::style::Stylize;
 
 mod auth;
 mod commit;
@@ -120,7 +121,8 @@ impl CliCommitCommand {
     fn run(self) -> Result<()> {
         let input = input::get_input(self.day.0)?;
 
-        let (Some(answer1), Some(answer2)) = days::execute_day(self.day.0, input)? else {
+        let result = days::execute_day(self.day.0, input)?;
+        let (Some(answer1), Some(answer2)) = (result.0.answer, result.1.answer) else {
             bail!("days can only be committed when both parts are solved");
         };
 
@@ -132,8 +134,16 @@ impl CliCommitCommand {
                 println!("Day {} is already commited", self.day.0);
                 println!("Answers match");
             } else if self.force {
-                println!("Part 1: {}", commit.answer1.trim());
-                println!("Part 2: {}", commit.answer2.trim());
+                println!(
+                    "Part 1: {}  {}",
+                    commit.answer1.trim(),
+                    format!("({:?})", result.0.duration).dark_grey(),
+                );
+                println!(
+                    "Part 2: {}  {}",
+                    commit.answer2.trim(),
+                    format!("({:?})", result.1.duration).dark_grey(),
+                );
                 commit::write_day_answers(self.day.0, &commit)?;
             } else {
                 eprintln!(
@@ -229,14 +239,20 @@ impl CliRunCommand {
         } else {
             input::get_input(self.day.0)?
         };
-        let (answer1, answer2) = days::execute_day(self.day.0, input)?;
+        let result = days::execute_day(self.day.0, input)?;
 
-        if let Some(answer) = answer1.as_deref() {
-            println!("Part 1: {answer}");
+        if let Some(answer) = result.0.answer.as_deref() {
+            println!(
+                "Part 1: {answer}  {}",
+                format!("({:?})", result.0.duration).dark_grey()
+            );
         }
 
-        if let Some(answer) = answer2.as_deref() {
-            println!("Part 2: {answer}");
+        if let Some(answer) = result.1.answer.as_deref() {
+            println!(
+                "Part 2: {answer}  {}",
+                format!("({:?})", result.1.duration).dark_grey()
+            );
         }
 
         Ok(())
