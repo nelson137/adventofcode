@@ -11,7 +11,7 @@ crate::day_executors! {
 
 #[derive(Clone, Debug)]
 enum Cell {
-    Obstruction,
+    Obstacle,
     Empty,
     EmptyVisited(CellVisits),
 }
@@ -22,14 +22,14 @@ impl Cell {
     }
 
     fn is_obstacle(&self) -> bool {
-        matches!(*self, Self::Obstruction)
+        matches!(*self, Self::Obstacle)
     }
 
     fn push_visit(&mut self, d: Direction, s: u64) {
         match self {
             Self::Empty => *self = Self::EmptyVisited(CellVisits::from_visit(d, s)),
             Self::EmptyVisited(visits) => visits.0.push((d, s)),
-            Self::Obstruction => unreachable!(),
+            Self::Obstacle => unreachable!(),
         }
     }
 }
@@ -103,7 +103,7 @@ impl Map {
                     ""
                 };
                 match cell {
-                    Cell::Obstruction => print!("#"),
+                    Cell::Obstacle => print!("#"),
                     Cell::Empty => print!("{prefix}.{suffix}"),
                     Cell::EmptyVisited(visits) => print!("{prefix}{visits}{suffix}"),
                 }
@@ -140,7 +140,7 @@ impl Map {
                     ""
                 };
                 match cell {
-                    Cell::Obstruction => print!("{prefix}#{suffix}"),
+                    Cell::Obstacle => print!("{prefix}#{suffix}"),
                     Cell::Empty => print!("{prefix}.{suffix}"),
                     Cell::EmptyVisited(visits) => print!("{prefix}{visits}{suffix}"),
                 }
@@ -163,7 +163,7 @@ impl Map {
             if !self.contains_cursor(next) {
                 break;
             }
-            if self[next] == Cell::Obstruction {
+            if self[next] == Cell::Obstacle {
                 direction = direction.rotate();
             } else {
                 cursor = next;
@@ -184,13 +184,13 @@ impl Map {
             if !self.contains_cursor(next_obstacle) {
                 break;
             }
-            if self[next_obstacle] == Cell::Obstruction {
+            if self[next_obstacle] == Cell::Obstacle {
                 direction = direction.rotate();
                 continue;
             }
 
             let original_cell = self[next_obstacle].clone();
-            self[next_obstacle] = Cell::Obstruction;
+            self[next_obstacle] = Cell::Obstacle;
 
             if self.probe_loop(cursor, direction, next_obstacle) {
                 obstacle_candidates.insert(next_obstacle);
@@ -259,7 +259,7 @@ impl Map {
             }
 
             match &self[probe_next] {
-                Cell::Obstruction => {
+                Cell::Obstacle => {
                     probe_dir = probe_dir.rotate();
                     if loop_path.contains(&(probe_cursor, probe_dir)) {
                         print_probe(
@@ -348,7 +348,7 @@ impl Map {
                 print_probe(Some("Out of Bounds"), cell_style::RED, cell_style::RED);
                 return false;
             }
-            if self[next] == Cell::Obstruction || next == prospective_obstacle {
+            if self[next] == Cell::Obstacle || next == prospective_obstacle {
                 direction = direction.rotate();
             } else {
                 cursor = next;
@@ -442,7 +442,7 @@ fn parse(input: &str) -> (Map, Cursor) {
     for (r, line) in input.lines().enumerate() {
         for (c, cell) in line.as_bytes().iter().copied().enumerate() {
             if cell == b'#' {
-                grid[r][c] = Cell::Obstruction;
+                grid[r][c] = Cell::Obstacle;
             } else if cell == b'^' {
                 grid[r][c] = Cell::EmptyVisited(CellVisits::from_visit(Direction::default(), 0));
                 cursor = Cursor::new(r, c);
