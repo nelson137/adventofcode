@@ -9,7 +9,7 @@ mod viz_tui;
 
 crate::day_executors! {
     [part1]
-    [part2_fast, part2_fast_v2, part2_brute]
+    [part2_fast, part2_brute]
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -290,108 +290,6 @@ impl Map {
 
     // #endregion Part 2 - Fast
 
-    // #region Part 2 - Fast v2
-
-    fn walk_and_find_loop_candidates_v2(&mut self, mut cursor: Cursor) -> usize {
-        let original_cursor = cursor;
-        let mut direction = Direction::default();
-
-        let mut walk_path = HashSet::from([(cursor, direction)]);
-        let mut probe_path_cache = HashSet::<(Cursor, Direction)>::new();
-        let mut obstacle_candidates = HashSet::<Cursor>::new();
-
-        loop {
-            let mut next_obstacle = cursor.move_in(direction);
-            if !self.contains_cursor(next_obstacle) {
-                break;
-            }
-
-            if self[next_obstacle].is_obstacle() {
-                direction = direction.rotate();
-                walk_path.insert((cursor, direction));
-                next_obstacle = cursor.move_in(direction);
-
-                if !self.contains_cursor(next_obstacle) {
-                    break;
-                }
-
-                if self[next_obstacle].is_obstacle() {
-                    direction = direction.rotate();
-                    walk_path.insert((cursor, direction));
-                    next_obstacle = cursor.move_in(direction);
-                }
-            }
-
-            // if !walk_path.contains(&(next_obstacle, direction))
-            {
-                let (walk_path, probe_start) = if self[next_obstacle].is_visited() {
-                    (&HashSet::new(), (original_cursor, Direction::default()))
-                } else {
-                    (&walk_path, (cursor, direction))
-                };
-                if self.probe_loop_fast_v2(
-                    walk_path,
-                    &mut probe_path_cache,
-                    probe_start,
-                    next_obstacle,
-                ) {
-                    obstacle_candidates.insert(next_obstacle);
-                }
-            }
-
-            cursor = next_obstacle;
-            walk_path.insert((cursor, direction));
-        }
-
-        obstacle_candidates.len()
-    }
-
-    fn probe_loop_fast_v2(
-        &mut self,
-        walk_path: &HashSet<(Cursor, Direction)>,
-        probe_path: &mut HashSet<(Cursor, Direction)>,
-        (cursor, direction): (Cursor, Direction),
-        prospective_obstacle: Cursor,
-    ) -> bool {
-        let mut probe_dir = direction;
-        let mut probe_cursor = cursor;
-
-        probe_path.clear();
-        self._viz_probe_path.clear();
-
-        // probe_path.insert((probe_cursor, probe_dir));
-        // self._viz_probe_path.push((probe_cursor, probe_dir));
-        // probe_dir = probe_dir.rotate();
-
-        loop {
-            if walk_path.contains(&(probe_cursor, probe_dir)) {
-                return true;
-            }
-
-            self._viz_probe_path.push((probe_cursor, probe_dir));
-            if !probe_path.insert((probe_cursor, probe_dir)) {
-                return true;
-            }
-
-            let probe_next = probe_cursor.move_in(probe_dir);
-
-            if !self.contains_cursor(probe_next) {
-                // self._viz_probe_path.push((probe_cursor, probe_dir));
-                return false;
-            }
-
-            if self[probe_next].is_obstacle() || probe_next == prospective_obstacle {
-                probe_dir = probe_dir.rotate();
-                // self._viz_probe_path.push((probe_cursor, probe_dir));
-                continue;
-            }
-
-            probe_cursor = probe_next;
-        }
-    }
-
-    // #endregion Part 2 - Fast v2
-
     // #region Viz
 
     #[allow(dead_code)]
@@ -450,60 +348,6 @@ impl Map {
         *cursor = next_obstacle;
         // path.insert((*cursor, *direction));
         // self._viz_walk_path.push((*cursor, *direction));
-
-        found_loop
-    }
-
-    fn viz_walk_and_find_loop_candidates_v2(
-        &mut self,
-        walk_path: &mut HashSet<(Cursor, Direction)>,
-        cursor: &mut Cursor,
-        direction: &mut Direction,
-    ) -> bool {
-        let original_cursor = *cursor;
-
-        walk_path.insert((*cursor, *direction));
-        self._viz_walk_path.push((*cursor, *direction));
-        let mut probe_path_cache = HashSet::<(Cursor, Direction)>::new();
-
-        // self._viz_walk_path.push((cursor, direction)); // XXX
-
-        let mut next_obstacle = cursor.move_in(*direction);
-        if !self.contains_cursor(next_obstacle) {
-            return false; //break;
-        }
-
-        if self[next_obstacle].is_obstacle() {
-            *direction = direction.rotate();
-            self._viz_walk_path.push((*cursor, *direction)); // XXX
-            next_obstacle = cursor.move_in(*direction);
-
-            if !self.contains_cursor(next_obstacle) {
-                return false; //break;
-            }
-
-            if self[next_obstacle].is_obstacle() {
-                *direction = direction.rotate();
-            }
-        }
-
-        let mut found_loop = false;
-
-        if !walk_path.contains(&(next_obstacle, *direction)) {
-            self._viz_obstacle = next_obstacle; // XXX
-            found_loop = self.probe_loop_fast_v2(
-                walk_path,
-                &mut probe_path_cache,
-                (original_cursor, Direction::default()),
-                next_obstacle,
-            );
-        }
-
-        *cursor = next_obstacle;
-        // self._viz_walk_path.push((cursor, direction)); // XXX
-        walk_path.insert((*cursor, *direction));
-        self._viz_walk_path.push((*cursor, *direction));
-        // }
 
         found_loop
     }
@@ -698,15 +542,6 @@ pub(super) fn part2_fast(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 
     let answer = map.walk_and_find_loop_candidates(cursor);
 
-    Some(Box::new(answer))
-}
-
-pub(super) fn part2_fast_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    let (mut map, cursor) = parse(input);
-
-    map.walk_from(cursor);
-
-    let answer = map.walk_and_find_loop_candidates_v2(cursor);
     Some(Box::new(answer))
 }
 

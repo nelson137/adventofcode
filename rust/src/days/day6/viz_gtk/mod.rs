@@ -497,8 +497,7 @@ fn cb_key_pressed(
             } = &mut *state;
             let mut path = state::PATH.write().unwrap();
             // map.viz_run_to_obstacle(cursor, direction);
-            *probe_succeeded =
-                map.viz_walk_and_find_loop_candidates_v2(&mut path, cursor, direction);
+            *probe_succeeded = map.viz_walk_and_find_loop_candidates(&mut path, cursor, direction);
         }
 
         state::DID_MAP_CHANGE
