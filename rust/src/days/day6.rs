@@ -11,6 +11,11 @@ crate::day_executors! {
     [part2_fast, part2_brute]
 }
 
+crate::day_visualizers! {
+    []
+    [part2_fast_viz]
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Cell {
     Obstacle,

@@ -5,6 +5,11 @@ crate::day_executors! {
     [part2]
 }
 
+crate::day_visualizers! {
+    []
+    []
+}
+
 pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let mut left = Vec::<u32>::new();
     let mut right = Vec::<u32>::new();

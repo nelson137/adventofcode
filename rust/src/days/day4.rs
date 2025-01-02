@@ -7,6 +7,11 @@ crate::day_executors! {
     [part2]
 }
 
+crate::day_visualizers! {
+    []
+    []
+}
+
 #[derive(Clone, Copy, Debug)]
 struct Pos {
     row: usize,

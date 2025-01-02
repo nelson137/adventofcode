@@ -33,6 +33,8 @@ enum Cli {
         command: CliInputCommand,
     },
     Run(CliRunCommand),
+    #[command(alias = "viz")]
+    Visualize(CliVisualizeCommand),
 }
 
 impl Cli {
@@ -43,6 +45,7 @@ impl Cli {
             Self::Commit(command) => command.run(),
             Self::Input { command } => command.run(),
             Self::Run(command) => command.run(),
+            Self::Visualize(command) => command.run(),
         }
     }
 }
@@ -253,6 +256,53 @@ impl CliRunCommand {
                 "Part 2: {answer}  {}",
                 format!("({:?})", result.1.duration).dark_grey()
             );
+        }
+
+        Ok(())
+    }
+}
+
+// ###################################################################
+// # CLI - Visualize
+// ###################################################################
+
+#[derive(Args, Clone, Debug)]
+struct CliVisualizeCommand {
+    #[command(flatten)]
+    parts: CliVisualizeCommandPartsGroup,
+
+    #[arg(value_parser = DayParser)]
+    day: Day,
+}
+
+#[derive(Args, Clone, Debug)]
+#[group(required = true, multiple = false)]
+struct CliVisualizeCommandPartsGroup {
+    #[arg(long)]
+    part1: bool,
+
+    #[arg(long)]
+    part2: bool,
+}
+
+impl CliVisualizeCommand {
+    fn run(self) -> Result<()> {
+        let visualizers = days::get_day_visualizers(self.day.0);
+
+        let (id, visualize) = if self.parts.part1 {
+            (1, visualizers.0)
+        } else {
+            (2, visualizers.1)
+        };
+
+        let Some(visualize) = visualize else {
+            bail!("there is no visualizer for Day {} Part {id}", self.day.0);
+        };
+
+        let input = input::get_input(self.day.0)?;
+
+        if let Some(answer) = visualize(&input) {
+            println!("Part {id}: {answer}");
         }
 
         Ok(())

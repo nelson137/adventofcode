@@ -16,6 +16,9 @@ type DayPartExecutorFn = for<'input> fn(&'input str) -> Option<DayPartAnswer>;
 type DayPartExecutors = &'static [(&'static str, DayPartExecutorFn)];
 type DayExecutors = (DayPartExecutors, DayPartExecutors);
 
+type DayPartVisualizerFn = DayPartExecutorFn;
+type DayVisualizers = (Option<DayPartVisualizerFn>, Option<DayPartVisualizerFn>);
+
 macro_rules! day_modules {
     ($( $day:ident ),+ $(,)?) => {
         $(
@@ -28,6 +31,10 @@ macro_rules! day_modules {
 
         static DAY_EXECUTORS: &[DayExecutors] = &[$(
             self::$day::EXECUTORS
+        ),+];
+
+        static DAY_VISUALIZERS: &[DayVisualizers] = &[$(
+            self::$day::VISUALIZERS
         ),+];
     };
 }
@@ -42,6 +49,22 @@ macro_rules! day_executors {
             &[$( (stringify!($ex1), $ex1) ),+],
             &[$( (stringify!($ex2), $ex2) ),+],
         );
+    };
+}
+
+#[macro_export]
+macro_rules! day_visualizers {
+    ([           ] [           ]) => {
+        pub(super) static VISUALIZERS: super::DayVisualizers = (None, None);
+    };
+    ([$viz1:ident] [           ]) => {
+        pub(super) static VISUALIZERS: super::DayVisualizers = (Some($viz1), None);
+    };
+    ([           ] [$viz2:ident]) => {
+        pub(super) static VISUALIZERS: super::DayVisualizers = (None, Some($viz2));
+    };
+    ([$viz1:ident] [$viz2:ident]) => {
+        pub(super) static VISUALIZERS: super::DayVisualizers = (Some($viz1), Some($viz2));
     };
 }
 
@@ -88,4 +111,8 @@ pub(crate) fn bench_day(c: &mut Criterion, day_i: u32, input: String) {
             group.bench_with_input(id, &*input, |b, i| b.iter(|| run(i)));
         }
     }
+}
+
+pub(crate) fn get_day_visualizers(day_i: u32) -> DayVisualizers {
+    DAY_VISUALIZERS[(day_i - 1) as usize]
 }

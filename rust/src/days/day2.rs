@@ -3,6 +3,11 @@ crate::day_executors! {
     [part2]
 }
 
+crate::day_visualizers! {
+    []
+    []
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum LvlDelta {
     Inc,

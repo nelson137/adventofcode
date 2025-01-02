@@ -1,3 +1,13 @@
+crate::day_executors! {
+    [part1]
+    [part2]
+}
+
+crate::day_visualizers! {
+    []
+    []
+}
+
 pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     _ = input;
 
