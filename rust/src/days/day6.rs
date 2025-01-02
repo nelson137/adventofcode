@@ -5,7 +5,6 @@ use std::{
 };
 
 mod viz_gtk;
-mod viz_tui;
 
 crate::day_executors! {
     [part1]
