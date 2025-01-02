@@ -74,24 +74,18 @@ pub(crate) fn bench_day(c: &mut Criterion, day_i: u32, input: String) {
     let day_executors = DAY_EXECUTORS[(day_i - 1) as usize];
 
     {
-        let mut group = c.benchmark_group(format!("Day-{day_i}/Part-1"));
-        for executor in day_executors.0 {
-            group.bench_with_input(
-                BenchmarkId::new(executor.0, "puzzle-input"),
-                &*input,
-                |b, i| b.iter(|| (executor.1)(i)),
-            );
+        let mut group = c.benchmark_group(format!("Day{day_i}-Pt1"));
+        for &(name, run) in day_executors.0 {
+            let id = BenchmarkId::new(name, "in");
+            group.bench_with_input(id, &*input, |b, i| b.iter(|| run(i)));
         }
     }
 
     {
-        let mut group = c.benchmark_group(format!("Day-{day_i}/Part-2"));
-        for executor in day_executors.1 {
-            group.bench_with_input(
-                BenchmarkId::new(executor.0, "puzzle-input"),
-                &*input,
-                |b, i| b.iter(|| (executor.1)(i)),
-            );
+        let mut group = c.benchmark_group(format!("Day{day_i}-Pt2"));
+        for &(name, run) in day_executors.1 {
+            let id = BenchmarkId::new(name, "in");
+            group.bench_with_input(id, &*input, |b, i| b.iter(|| run(i)));
         }
     }
 }
