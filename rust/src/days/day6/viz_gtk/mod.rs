@@ -216,7 +216,7 @@ fn draw(_widget: &gtk::DrawingArea, ctx: &cairo::Context, width: i32, height: i3
 
     // Draw obstacles
 
-    for (r, row) in state.map.grid.iter().enumerate() {
+    for (r, row) in state.map.grid.chunks(state.map.width).enumerate() {
         for (c, cell) in row.iter().enumerate() {
             let x = c as f64 * cell_size;
             let y = r as f64 * cell_size;

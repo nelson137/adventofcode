@@ -52,7 +52,7 @@ impl Cell {
 struct Map {
     height: usize,
     width: usize,
-    grid: Vec<Vec<Cell>>, // TODO: flatten this to a 1-D vec
+    grid: Vec<Cell>,
     _viz_obstacle: Cursor,
     _viz_walk_path: Vec<(Cursor, Direction)>,
     _viz_probe_path: Vec<(Cursor, Direction)>,
@@ -73,7 +73,7 @@ impl Map {
     #[allow(dead_code)]
     fn print(&self, cursor: Cursor) {
         let suffix = "\x1b[0m";
-        for (r, row) in self.grid.iter().enumerate() {
+        for (r, row) in self.grid.chunks(self.width).enumerate() {
             for (c, cell) in row.iter().enumerate() {
                 let cell_cursor = Cursor::new(r, c);
                 let prefix = if cell_cursor == cursor {
@@ -103,7 +103,7 @@ impl Map {
             println!(":: {l} ::");
         }
         let suffix = "\x1b[0m";
-        for (r, row) in self.grid.iter().enumerate() {
+        for (r, row) in self.grid.chunks(self.width).enumerate() {
             for (c, cell) in row.iter().enumerate() {
                 let cell_cursor = Cursor::new(r, c);
                 let prefix = if cell_cursor == probe {
@@ -154,7 +154,7 @@ impl Map {
         let mut loop_path_cache =
             HashSet::<(Cursor, Direction)>::with_capacity(self.height * self.width);
 
-        for (r, row) in self.grid.iter().enumerate() {
+        for (r, row) in self.grid.chunks(self.width).enumerate() {
             for (c, cell) in row.iter().enumerate() {
                 if cell.is_visited() {
                     continue;
@@ -450,14 +450,14 @@ impl Index<Cursor> for Map {
 
     fn index(&self, index: Cursor) -> &Self::Output {
         debug_assert!(self.contains_cursor(index));
-        &self.grid[index.row as usize][index.col as usize]
+        &self.grid[index.row as usize * self.width + index.col as usize]
     }
 }
 
 impl IndexMut<Cursor> for Map {
     fn index_mut(&mut self, index: Cursor) -> &mut Self::Output {
         debug_assert!(self.contains_cursor(index));
-        &mut self.grid[index.row as usize][index.col as usize]
+        &mut self.grid[index.row as usize * self.width + index.col as usize]
     }
 }
 
@@ -465,32 +465,32 @@ fn parse(input: &str) -> (Map, Cursor) {
     let height = input.lines().count();
     let width = input.lines().next().unwrap().trim().len();
 
-    let mut grid = vec![vec![Cell::Empty; width]; height];
+    let mut map = Map {
+        height,
+        width,
+        grid: vec![Cell::Empty; width * height],
+        _viz_obstacle: Cursor { row: -1, col: -1 },
+        _viz_walk_path: Vec::new(),
+        _viz_probe_path: Vec::new(),
+    };
 
     let mut cursor = Cursor::default();
 
     for (r, line) in input.lines().enumerate() {
         for (c, cell) in line.as_bytes().iter().copied().enumerate() {
+            let cell_cursor = Cursor::new(r, c);
             if cell == b'#' {
-                grid[r][c] = Cell::Obstacle;
+                map[cell_cursor] = Cell::Obstacle;
             } else if cell == b'^' {
-                grid[r][c] = Cell::EmptyVisited;
+                map[cell_cursor] = Cell::EmptyVisited;
                 cursor = Cursor::new(r, c);
             }
         }
     }
 
-    (
-        Map {
-            height,
-            width,
-            grid,
-            _viz_obstacle: Cursor { row: -1, col: -1 },
-            _viz_walk_path: vec![(cursor, Direction::default())],
-            _viz_probe_path: Vec::new(),
-        },
-        cursor,
-    )
+    map._viz_walk_path.push((cursor, Direction::default()));
+
+    (map, cursor)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -534,11 +534,7 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 
     map.walk_from(cursor);
 
-    let answer = map
-        .grid
-        .iter()
-        .map(|row| row.iter().filter(|c| c.is_visited()).count())
-        .sum::<usize>();
+    let answer = map.grid.iter().filter(|&c| c.is_visited()).count();
 
     Some(Box::new(answer))
 }
