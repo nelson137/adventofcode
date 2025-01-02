@@ -59,7 +59,6 @@ struct Map {
 }
 
 impl Map {
-    #[allow(dead_code)]
     const fn empty() -> Self {
         Self {
             height: 0,
@@ -140,13 +139,10 @@ impl Map {
                 break;
             }
             if self[next] == Cell::Obstacle {
-                self._viz_walk_path.push((cursor, direction));
                 direction = direction.rotate();
-                self._viz_walk_path.push((cursor, direction));
             } else {
                 cursor = next;
                 self[cursor].visit();
-                self._viz_walk_path.push((cursor, direction));
             }
         }
     }
@@ -214,8 +210,6 @@ impl Map {
 
         let mut direction = Direction::default();
 
-        // self._viz_walk_path.push((cursor, direction)); // XXX
-
         loop {
             let mut next_obstacle = cursor.move_in(direction);
             if !self.contains_cursor(next_obstacle) {
@@ -224,7 +218,6 @@ impl Map {
 
             if self[next_obstacle].is_obstacle() {
                 direction = direction.rotate();
-                // self._viz_walk_path.push((cursor, direction)); // XXX
                 next_obstacle = cursor.move_in(direction);
 
                 if !self.contains_cursor(next_obstacle) {
@@ -237,15 +230,14 @@ impl Map {
             }
 
             if !walk_path.contains(&next_obstacle) {
-                // self._viz_obstacle = next_obstacle; // XXX
-
-                if self.probe_loop_fast(&mut loop_path_cache, cursor, direction, next_obstacle) {
+                let found_loop =
+                    self.probe_loop_fast(&mut loop_path_cache, cursor, direction, next_obstacle);
+                if found_loop {
                     obstacle_candidates.insert(next_obstacle);
                 }
             }
 
             cursor = next_obstacle;
-            // self._viz_walk_path.push((cursor, direction)); // XXX
             walk_path.insert(cursor);
         }
 
@@ -266,29 +258,23 @@ impl Map {
         loop_path.insert((cursor, direction));
         loop_path.insert((probe_cursor, probe_dir));
 
-        self._viz_probe_path.clear();
-
         loop {
             let probe_next = probe_cursor.move_in(probe_dir);
 
             if !self.contains_cursor(probe_next) {
-                // self._viz_probe_path.push((probe_cursor, probe_dir));
                 return false;
             }
 
             if self[probe_next].is_obstacle() || probe_next == next_obstacle {
                 probe_dir = probe_dir.rotate();
                 loop_path.insert((probe_cursor, probe_dir));
-                // self._viz_probe_path.push((probe_cursor, probe_dir));
                 continue;
             } else if loop_path.contains(&(probe_next, probe_dir)) {
-                // self._viz_probe_path.push((probe_cursor, probe_dir));
                 return true;
             }
 
             probe_cursor = probe_next;
             loop_path.insert((probe_cursor, probe_dir));
-            // self._viz_probe_path.push((probe_cursor, probe_dir));
         }
     }
 
@@ -347,28 +333,54 @@ impl Map {
         self._viz_obstacle = next_obstacle;
 
         let found_loop =
-            self.probe_loop_fast(&mut loop_path_cache, *cursor, *direction, next_obstacle);
+            self.viz_probe_loop_fast(&mut loop_path_cache, *cursor, *direction, next_obstacle);
 
         *cursor = next_obstacle;
-        // path.insert((*cursor, *direction));
-        // self._viz_walk_path.push((*cursor, *direction));
 
         found_loop
     }
 
-    // #endregion Viz
-}
+    fn viz_probe_loop_fast(
+        &mut self,
+        loop_path: &mut HashSet<(Cursor, Direction)>,
+        cursor: Cursor,
+        direction: Direction,
+        next_obstacle: Cursor,
+    ) -> bool {
+        let mut probe_dir = direction.rotate();
+        let mut probe_cursor = cursor;
 
-#[allow(dead_code)]
-mod c {
-    //! [ANSI colors](https://en.wikipedia.org/wiki/ANSI_escape_code#Colors)
-    pub const RED: &str = "\x1b[41m\x1b[30m";
-    pub const GREEN: &str = "\x1b[42m\x1b[30m";
-    pub const YELLOW: &str = "\x1b[43m\x1b[30m";
-    pub const CYAN: &str = "\x1b[46m\x1b[30m";
-    pub const BRIGHT_BLACK: &str = "\x1b[100m\x1b[97m";
-    pub const WHITE: &str = "\x1b[107m\x1b[30m";
-    pub const X_CURSOR: &str = WHITE;
+        loop_path.clear();
+        loop_path.insert((cursor, direction));
+        loop_path.insert((probe_cursor, probe_dir));
+
+        self._viz_probe_path.clear();
+
+        loop {
+            let probe_next = probe_cursor.move_in(probe_dir);
+
+            if !self.contains_cursor(probe_next) {
+                self._viz_probe_path.push((probe_cursor, probe_dir));
+                return false;
+            }
+
+            if self[probe_next].is_obstacle() || probe_next == next_obstacle {
+                probe_dir = probe_dir.rotate();
+                loop_path.insert((probe_cursor, probe_dir));
+                self._viz_probe_path.push((probe_cursor, probe_dir));
+                continue;
+            } else if loop_path.contains(&(probe_next, probe_dir)) {
+                self._viz_probe_path.push((probe_cursor, probe_dir));
+                return true;
+            }
+
+            probe_cursor = probe_next;
+            loop_path.insert((probe_cursor, probe_dir));
+            self._viz_probe_path.push((probe_cursor, probe_dir));
+        }
+    }
+
+    // #endregion Viz
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
