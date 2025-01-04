@@ -1,3 +1,4 @@
+use adventofcode as aoc;
 use std::{fmt, iter, ops};
 
 use itertools::Itertools;
@@ -50,9 +51,9 @@ impl fmt::Display for Equation {
 }
 
 impl Equation {
-    fn try_solve(&self) -> Option<u64> {
+    fn try_solve<const N: usize>(&self, ops: [Operator; N]) -> Option<u64> {
         let nops = self.values.len() - 1;
-        iter::repeat_n([Operator::Add, Operator::Mul], nops)
+        iter::repeat_n(ops, nops)
             .multi_cartesian_product()
             .any(|ops| self.is_solution(&ops))
             .then_some(self.test)
@@ -74,6 +75,7 @@ impl Equation {
 enum Operator {
     Add,
     Mul,
+    Concat,
 }
 
 impl fmt::Debug for Operator {
@@ -81,15 +83,17 @@ impl fmt::Debug for Operator {
         match *self {
             Self::Add => write!(f, "+"),
             Self::Mul => write!(f, "*"),
+            Self::Concat => write!(f, "||"),
         }
     }
 }
 
 impl Operator {
-    fn call<T: ops::Add<Output = T> + ops::Mul<Output = T>>(self, a: T, b: T) -> T {
+    fn call(self, a: u64, b: u64) -> u64 {
         match self {
             Self::Add => ops::Add::add(a, b),
             Self::Mul => ops::Mul::mul(a, b),
+            Self::Concat => a * 10_u64.pow(aoc::count_digits(b) as u32) + b,
         }
     }
 }
@@ -97,16 +101,25 @@ impl Operator {
 pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let calibration = parse(input);
 
+    let ops = [Operator::Add, Operator::Mul];
+
     let answer = calibration
         .iter()
-        .filter_map(Equation::try_solve)
+        .filter_map(|eq| eq.try_solve(ops))
         .sum::<u64>();
 
     Some(Box::new(answer))
 }
 
 pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    _ = input;
+    let calibration = parse(input);
 
-    None
+    let ops = [Operator::Add, Operator::Mul, Operator::Concat];
+
+    let answer = calibration
+        .iter()
+        .filter_map(|eq| eq.try_solve(ops))
+        .sum::<u64>();
+
+    Some(Box::new(answer))
 }
