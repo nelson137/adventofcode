@@ -71,6 +71,17 @@ impl Map {
         (0..self.height as i32).contains(&pos.row) && (0..self.width as i32).contains(&pos.col)
     }
 
+    #[inline(always)]
+    /// Set an antinode on the map.
+    ///
+    /// Returns whether the antinode was *newly set*, meaning that before this
+    /// operation the cell at the given position `pos` was `false`.
+    fn set_antinode(&mut self, pos: Pos) -> bool {
+        let mut b = true;
+        std::mem::swap(&mut self.antinodes[pos], &mut b);
+        !b
+    }
+
     fn iter_antennas(&self) -> impl Iterator<Item = (Pos, Antenna)> {
         self.antennas
             .0
@@ -91,24 +102,21 @@ impl Map {
             freq_positions.entry(antenna).or_default().push(pos);
         }
 
+        let mut antinode_count = 0;
+
         for (_a, positions) in freq_positions {
             for pair in positions.into_iter().permutations(2) {
                 let (a, b) = (pair[0], pair[1]);
                 let delta = b - a;
                 for antinode in [a - delta, b + delta] {
-                    if self.contains_pos(antinode) {
-                        self.antinodes[antinode] = true;
+                    if self.contains_pos(antinode) && self.set_antinode(antinode) {
+                        antinode_count += 1;
                     }
                 }
             }
         }
 
-        self.antinodes
-            .0
-            .iter()
-            .flat_map(|row| row.iter().copied())
-            .filter(|x| *x)
-            .count()
+        antinode_count
     }
 }
 
