@@ -1,7 +1,5 @@
 use std::{collections::HashMap, fmt, num::NonZeroU8, ops};
 
-use itertools::Itertools;
-
 crate::day_executors! {
     [part1]
     [part2]
@@ -105,12 +103,17 @@ impl Map {
         let mut antinode_count = 0;
 
         for (_a, positions) in freq_positions {
-            for pair in positions.into_iter().permutations(2) {
-                let (a, b) = (pair[0], pair[1]);
-                let delta = b - a;
-                for antinode in [a - delta, b + delta] {
-                    if self.contains_pos(antinode) && self.set_antinode(antinode) {
-                        antinode_count += 1;
+            for i in 0..positions.len() {
+                for j in 0..positions.len() {
+                    if i == j {
+                        continue;
+                    }
+                    let (a, b) = (positions[i], positions[j]);
+                    let delta = b - a;
+                    for antinode in [a - delta, b + delta] {
+                        if self.contains_pos(antinode) && self.set_antinode(antinode) {
+                            antinode_count += 1;
+                        }
                     }
                 }
             }
