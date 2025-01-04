@@ -4,6 +4,14 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 
+[features]
+bench = []
+
+[[bench]]
+name = "count_digits"
+harness = false
+required-features = ["bench"]
+
 [dependencies]
 anyhow = "1.0.94"
 bitflags = "2.6.0"
