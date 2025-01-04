@@ -121,6 +121,50 @@ impl Map {
 
         antinode_count
     }
+
+    fn find_antinodes_with_resonant_harmonics(&mut self) -> usize {
+        let mut freq_positions = HashMap::<Antenna, Vec<Pos>>::new();
+
+        let mut antinode_count = 0;
+
+        for (pos, antenna) in self.iter_antennas() {
+            freq_positions.entry(antenna).or_default().push(pos);
+            antinode_count += 1;
+        }
+
+        for (_a, positions) in freq_positions {
+            for i in 0..positions.len() {
+                for j in 0..positions.len() {
+                    if i == j {
+                        continue;
+                    }
+
+                    let (a, b) = (positions[i], positions[j]);
+                    let delta = b - a;
+
+                    let mut antinode = a - delta;
+
+                    while self.contains_pos(antinode) {
+                        if self.set_antinode(antinode) && self.antennas[antinode].is_none() {
+                            antinode_count += 1;
+                        }
+                        antinode -= delta;
+                    }
+
+                    let mut antinode = b + delta;
+
+                    while self.contains_pos(antinode) {
+                        if self.set_antinode(antinode) && self.antennas[antinode].is_none() {
+                            antinode_count += 1;
+                        }
+                        antinode += delta;
+                    }
+                }
+            }
+        }
+
+        antinode_count
+    }
 }
 
 type AntennaGrid = Grid<Option<Antenna>>;
@@ -189,6 +233,12 @@ impl ops::Add for Pos {
     }
 }
 
+impl ops::AddAssign for Pos {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
 impl ops::Sub for Pos {
     type Output = Pos;
 
@@ -197,6 +247,12 @@ impl ops::Sub for Pos {
             row: self.row - rhs.row,
             col: self.col - rhs.col,
         }
+    }
+}
+
+impl ops::SubAssign for Pos {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
     }
 }
 
@@ -209,7 +265,9 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 }
 
 pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    _ = input;
+    let mut map = parse(input);
 
-    None
+    let answer = map.find_antinodes_with_resonant_harmonics();
+
+    Some(Box::new(answer))
 }
