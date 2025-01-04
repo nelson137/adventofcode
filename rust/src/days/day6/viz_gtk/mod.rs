@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering;
 use anyhow::Result;
 use gtk::{cairo, gdk, glib, prelude::*};
 
-use super::{Cell, Direction, Map, Pos};
+use super::{Cell, Cursor, Direction, Map, Pos};
 
 use self::utils::eat_err;
 
@@ -12,16 +12,15 @@ mod utils;
 
 const APP_ID: &str = "com.nelsonearle.adventofcode.day6.viz";
 
-pub(super) fn viz_main(map: &mut Map, pos: Pos, direction: Direction) {
-    eat_err(unsafe { viz_main_imp(map, pos, direction) });
+pub(super) fn viz_main(map: &mut Map, cursor: Cursor) {
+    eat_err(unsafe { viz_main_imp(map, cursor) });
 }
 
-unsafe fn viz_main_imp(map: &mut Map, pos: Pos, direction: Direction) -> Result<()> {
+unsafe fn viz_main_imp(map: &mut Map, cursor: Cursor) -> Result<()> {
     // NOTE: IMPORTANT: Initialize the whole struct
     *state::APP_STATE.write().unwrap() = state::AppState_ {
         map: map.clone(),
-        pos,
-        direction,
+        cursor,
         probe_succeeded: false,
     };
 
@@ -248,29 +247,29 @@ fn draw(_widget: &gtk::DrawingArea, ctx: &cairo::Context, width: i32, height: i3
             .map
             ._viz_walk_path
             .first()
-            .map(|p| p.1.rotate())
+            .map(|p| p.rotate().dir)
             .unwrap_or(Direction::South);
 
         // if _did_map_change {
         //     println!("WALK:");
-        //     for (c, d) in &state.map._walk_path {
-        //         print!(" / {c} {d}");
+        //     for c in &state.map._walk_path {
+        //         print!(" / {c}");
         //     }
         //     println!();
         // }
 
-        for &(walk_pos, walk_dir) in &state.map._viz_walk_path {
+        for &walk_cursor in &state.map._viz_walk_path {
             // if _did_map_change {
-            //     println!("walk point {walk_pos} {walk_dir}");
+            //     println!("walk point {walk_cursor}");
             // }
 
-            if walk_dir == direction {
+            if walk_cursor.dir == direction {
                 continue;
             }
 
-            direction = walk_dir;
+            direction = walk_cursor.dir;
 
-            let (x, y) = to_cell_center(walk_pos);
+            let (x, y) = to_cell_center(walk_cursor.pos);
 
             // if _did_map_change {
             //     let current = ctx.current_point()?;
@@ -282,8 +281,8 @@ fn draw(_widget: &gtk::DrawingArea, ctx: &cairo::Context, width: i32, height: i3
             ctx.line_to(x, y);
         }
 
-        if let Some((last_pos, _last_dir)) = state.map._viz_walk_path.last().copied() {
-            let (x, y) = to_cell_center(last_pos);
+        if let Some(last_cursor) = state.map._viz_walk_path.last().copied() {
+            let (x, y) = to_cell_center(last_cursor.pos);
 
             // if _did_map_change {
             //     let current = ctx.current_point()?;
@@ -313,21 +312,21 @@ fn draw(_widget: &gtk::DrawingArea, ctx: &cairo::Context, width: i32, height: i3
             .map
             ._viz_probe_path
             .first()
-            .map(|p| p.1.rotate())
+            .map(|p| p.rotate().dir)
             .unwrap_or(Direction::South);
 
-        for &(probe_pos, probe_dir) in &state.map._viz_probe_path {
+        for &probe_cursor in &state.map._viz_probe_path {
             // if _did_map_change {
-            //     print!(" => {probe_pos} {probe_dir}");
+            //     print!(" => {probe_cursor}");
             // }
 
-            if probe_dir == direction {
+            if probe_cursor.dir == direction {
                 continue;
             }
 
-            direction = probe_dir;
+            direction = probe_cursor.dir;
 
-            let (x, y) = to_cell_center(probe_pos);
+            let (x, y) = to_cell_center(probe_cursor.pos);
 
             // if _did_map_change {
             //     let current = ctx.current_point()?;
@@ -343,8 +342,8 @@ fn draw(_widget: &gtk::DrawingArea, ctx: &cairo::Context, width: i32, height: i3
         //     println!();
         // }
 
-        if let Some((last_pos, _last_dir)) = state.map._viz_probe_path.last().copied() {
-            let (x, y) = to_cell_center(last_pos);
+        if let Some(last_cursor) = state.map._viz_probe_path.last().copied() {
+            let (x, y) = to_cell_center(last_cursor.pos);
 
             // if _did_map_change {
             //     let current = ctx.current_point()?;
@@ -370,9 +369,9 @@ fn draw(_widget: &gtk::DrawingArea, ctx: &cairo::Context, width: i32, height: i3
     // Draw cursor
 
     {
-        if let Some((last_pos, _last_dir)) = state.map._viz_walk_path.last().copied() {
-            let x = last_pos.col as f64 * cell_size;
-            let y = last_pos.row as f64 * cell_size;
+        if let Some(last_cursor) = state.map._viz_walk_path.last().copied() {
+            let x = last_cursor.pos.col as f64 * cell_size;
+            let y = last_cursor.pos.row as f64 * cell_size;
             draw_cursor(ctx, x, y, cell_size, &color_cell_cursor)?;
         }
     }
@@ -451,13 +450,12 @@ fn cb_key_pressed(
         {
             let state::AppState_ {
                 map,
-                pos,
-                direction,
+                cursor,
                 probe_succeeded,
             } = &mut *state;
             let mut path = state::PATH.write().unwrap();
-            // map.viz_run_to_obstacle(cursor, direction);
-            *probe_succeeded = map.viz_walk_and_find_loop_candidates(&mut path, pos, direction);
+            // map.viz_run_to_obstacle(cursor);
+            *probe_succeeded = map.viz_walk_and_find_loop_candidates(&mut path, cursor);
         }
 
         state::DID_MAP_CHANGE
