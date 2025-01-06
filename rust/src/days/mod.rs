@@ -72,25 +72,29 @@ macro_rules! day_visualizers {
 
 day_modules![day1, day2, day3, day4, day5, day6, day7, day8, day9];
 
-pub(crate) fn execute_day(day_i: u32, input: String) -> DayResult {
+pub(crate) fn execute_day(day_i: u32, part1: bool, part2: bool, input: String) -> DayResult {
     let executors = DAY_EXECUTORS[(day_i - 1) as usize];
 
-    let run_part = |part: DayPartExecutorFn| -> Option<DayPartResult> {
-        let t = Instant::now();
-        let answer = part(&input);
-        let duration = t.elapsed();
-        answer.map(|answer| DayPartResult { answer, duration })
+    let run_part = |should_run: bool, part: DayPartExecutorFn| -> Option<DayPartResult> {
+        if should_run {
+            let t = Instant::now();
+            let answer = part(&input);
+            let duration = t.elapsed();
+            answer.map(|answer| DayPartResult { answer, duration })
+        } else {
+            None
+        }
     };
 
-    let part1_result = run_part(executors.0[0].1);
-    let part2_result = run_part(executors.1[0].1);
+    let part1_result = run_part(part1, executors.0[0].1);
+    let part2_result = run_part(part2, executors.1[0].1);
     DayResult(part1_result, part2_result)
 }
 
-pub(crate) fn bench_day(c: &mut Criterion, day_i: u32, input: String) {
+pub(crate) fn bench_day(c: &mut Criterion, day_i: u32, part1: bool, part2: bool, input: String) {
     let day_executors = DAY_EXECUTORS[(day_i - 1) as usize];
 
-    {
+    if part1 {
         let mut group = c.benchmark_group(format!("Day{day_i}-Pt1"));
         for &(name, run) in day_executors.0 {
             let id = BenchmarkId::new(name, "in");
@@ -98,7 +102,7 @@ pub(crate) fn bench_day(c: &mut Criterion, day_i: u32, input: String) {
         }
     }
 
-    {
+    if part2 {
         let mut group = c.benchmark_group(format!("Day{day_i}-Pt2"));
         for &(name, run) in day_executors.1 {
             let id = BenchmarkId::new(name, "in");

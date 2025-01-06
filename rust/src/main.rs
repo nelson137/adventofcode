@@ -91,6 +91,9 @@ impl CliAuthCommand {
 
 #[derive(Args, Clone, Debug)]
 struct CliBenchCommand {
+    #[command(flatten)]
+    parts: CliDefaultedPartsGroup,
+
     #[arg(value_parser = DayParser)]
     day: Day,
 }
@@ -99,7 +102,13 @@ impl CliBenchCommand {
     fn run(self) -> Result<()> {
         let input = input::get_input(self.day.0)?;
         let mut criterion = criterion::Criterion::default();
-        days::bench_day(&mut criterion, self.day.0, input);
+        days::bench_day(
+            &mut criterion,
+            self.day.0,
+            self.parts.part1(),
+            self.parts.part2(),
+            input,
+        );
 
         criterion::Criterion::default().final_summary();
 
@@ -124,7 +133,7 @@ impl CliCommitCommand {
     fn run(self) -> Result<()> {
         let input = input::get_input(self.day.0)?;
 
-        let result = days::execute_day(self.day.0, input);
+        let result = days::execute_day(self.day.0, true, true, input);
         let (Some(result1), Some(result2)) = (result.0, result.1) else {
             bail!("days can only be committed when both parts are solved");
         };
@@ -228,6 +237,9 @@ impl CliInputCommand {
 
 #[derive(Args, Clone, Debug)]
 struct CliRunCommand {
+    #[command(flatten)]
+    parts: CliDefaultedPartsGroup,
+
     #[arg(long)]
     test: bool,
 
@@ -242,19 +254,21 @@ impl CliRunCommand {
         } else {
             input::get_input(self.day.0)?
         };
-        let result = days::execute_day(self.day.0, input)?;
+        let result = days::execute_day(self.day.0, self.parts.part1(), self.parts.part2(), input);
 
-        if let Some(answer) = result.0.answer.as_deref() {
+        if let Some(r1) = result.0 {
             println!(
-                "Part 1: {answer}  {}",
-                format!("({:?})", result.0.duration).dark_grey()
+                "Part 1: {}  {}",
+                r1.answer,
+                format!("({:?})", r1.duration).dark_grey()
             );
         }
 
-        if let Some(answer) = result.1.answer.as_deref() {
+        if let Some(r2) = result.1 {
             println!(
-                "Part 2: {answer}  {}",
-                format!("({:?})", result.1.duration).dark_grey()
+                "Part 2: {}  {}",
+                r2.answer,
+                format!("({:?})", r2.duration).dark_grey()
             );
         }
 
@@ -312,6 +326,30 @@ impl CliVisualizeCommand {
 // ###################################################################
 // # Data
 // ###################################################################
+
+#[derive(Args, Clone, Debug)]
+#[group(required = false, multiple = true)]
+struct CliDefaultedPartsGroup {
+    #[arg(long)]
+    part1: bool,
+
+    #[arg(long)]
+    part2: bool,
+}
+
+impl CliDefaultedPartsGroup {
+    fn none(&self) -> bool {
+        !self.part1 && !self.part2
+    }
+
+    fn part1(&self) -> bool {
+        self.part1 || self.none()
+    }
+
+    fn part2(&self) -> bool {
+        self.part2 || self.none()
+    }
+}
 
 #[derive(Clone, Copy, Debug)]
 struct Day(u32);
