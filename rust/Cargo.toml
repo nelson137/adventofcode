@@ -12,6 +12,10 @@ name = "count_digits"
 harness = false
 required-features = ["bench"]
 
+[[bench]]
+name = "sum_str_digits"
+harness = false
+
 [dependencies]
 anyhow = "1.0.94"
 bitflags = "2.6.0"
