@@ -124,13 +124,13 @@ impl CliCommitCommand {
     fn run(self) -> Result<()> {
         let input = input::get_input(self.day.0)?;
 
-        let result = days::execute_day(self.day.0, input)?;
-        let (Some(answer1), Some(answer2)) = (result.0.answer, result.1.answer) else {
+        let result = days::execute_day(self.day.0, input);
+        let (Some(result1), Some(result2)) = (result.0, result.1) else {
             bail!("days can only be committed when both parts are solved");
         };
 
         let existing_commit = commit::get_existing_commit(self.day.0)?;
-        let commit = commit::DayAnswersCommit::new(&answer1, &answer2);
+        let commit = commit::DayAnswersCommit::new(&result1.answer, &result2.answer);
 
         if let Some(existing_commit) = existing_commit {
             if commit == existing_commit {
@@ -140,12 +140,12 @@ impl CliCommitCommand {
                 println!(
                     "Part 1: {}  {}",
                     commit.answer1.trim(),
-                    format!("({:?})", result.0.duration).dark_grey(),
+                    format!("({:?})", result1.duration).dark_grey(),
                 );
                 println!(
                     "Part 2: {}  {}",
                     commit.answer2.trim(),
-                    format!("({:?})", result.1.duration).dark_grey(),
+                    format!("({:?})", result2.duration).dark_grey(),
                 );
                 commit::write_day_answers(self.day.0, &commit)?;
             } else {
