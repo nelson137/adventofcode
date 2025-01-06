@@ -11,9 +11,17 @@ crate::day_visualizers! {
 }
 
 #[inline(always)]
-fn parse_byte(b: u8) -> u32 {
+fn parse_byte32(b: u8) -> u32 {
     match b {
         b'0'..=b'9' => (b - b'0') as u32,
+        _ => unsafe { std::hint::unreachable_unchecked() },
+    }
+}
+
+#[inline(always)]
+fn parse_byte8(b: u8) -> u8 {
+    match b {
+        b'0'..=b'9' => b - b'0',
         _ => unsafe { std::hint::unreachable_unchecked() },
     }
 }
@@ -21,14 +29,14 @@ fn parse_byte(b: u8) -> u32 {
 pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let diskmap_str = input.trim();
 
-    let disk_size = diskmap_str.bytes().map(parse_byte).sum::<u32>() as usize;
+    let disk_size = diskmap_str.bytes().map(parse_byte32).sum::<u32>() as usize;
     let mut file_block_map = Vec::<bool>::with_capacity(disk_size);
     let mut file_blocks = VecDeque::<u32>::with_capacity(disk_size);
 
     let mut block_is_file = true;
     let mut file_id = 0;
     for b in diskmap_str.bytes() {
-        for _ in 0..parse_byte(b) {
+        for _ in 0..parse_byte32(b) {
             if block_is_file {
                 file_block_map.push(true);
                 file_blocks.push_back(file_id);
@@ -102,7 +110,7 @@ pub(super) fn part1_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 
     let mut n_file_blocks = 0_usize;
     for (i, b) in diskmap_str.bytes().enumerate() {
-        let span = parse_byte(b);
+        let span = parse_byte32(b);
         diskmap.push(span);
         if i % 2 == 0 {
             n_file_blocks += span as usize;
@@ -160,8 +168,81 @@ pub(super) fn part1_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     Some(Box::new(checksum))
 }
 
-pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    _ = input;
+#[derive(Clone, Copy, Debug)]
+struct FileSpan {
+    start_bid: u32,
+    len: u8,
+}
 
-    None
+#[derive(Clone, Copy, Debug)]
+struct SpaceSpan {
+    start_bid: u32,
+    original_len: u8,
+    len: u8,
+}
+
+impl SpaceSpan {
+    fn space_offset(self) -> u8 {
+        self.original_len - self.len
+    }
+}
+
+pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+    let diskmap_str = input.trim();
+
+    let mut file_spans = Vec::<FileSpan>::with_capacity(diskmap_str.len() / 2 + 1);
+    let mut space_spans = Vec::<SpaceSpan>::with_capacity(diskmap_str.len() / 2 + 1);
+
+    let mut bid = 0;
+    for (i, b) in diskmap_str.bytes().enumerate() {
+        let len = parse_byte8(b);
+        if i % 2 == 0 {
+            file_spans.push(FileSpan {
+                start_bid: bid,
+                len,
+            });
+        } else {
+            space_spans.push(SpaceSpan {
+                start_bid: bid,
+                original_len: len,
+                len,
+            });
+        }
+        bid += len as u32;
+    }
+
+    let mut r_fi = file_spans.len() - 1;
+    let mut checksum = 0_usize;
+
+    while r_fi > 0 {
+        let file = file_spans[r_fi];
+
+        let mut l_si = 0_usize;
+        let mut l_bid = file_spans[0].len as u32;
+        let did_move_file = loop {
+            let space = &mut space_spans[l_si];
+
+            if space.start_bid >= file.start_bid {
+                break false;
+            }
+
+            if file.len <= space.len {
+                let space_offset = space.space_offset();
+                space.len -= file.len;
+                checksum += span_checksum(l_bid + space_offset as u32, file.len as u32, r_fi);
+                break true;
+            }
+
+            l_si += 1;
+            l_bid += space.original_len as u32 + file_spans[l_si].len as u32;
+        };
+
+        if !did_move_file {
+            checksum += span_checksum(file.start_bid, file.len as u32, r_fi);
+        }
+
+        r_fi -= 1;
+    }
+
+    Some(Box::new(checksum))
 }
