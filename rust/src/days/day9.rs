@@ -100,23 +100,16 @@ pub(super) fn part1_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let diskmap_str = input.trim();
     let mut diskmap = Vec::<u32>::with_capacity(diskmap_str.len());
 
-    let mut n_space_blocks = 0_usize;
-    let mut span_is_space = false;
-    for b in diskmap_str.bytes() {
+    let mut n_file_blocks = 0_usize;
+    for (i, b) in diskmap_str.bytes().enumerate() {
         let span = parse_byte(b);
         diskmap.push(span);
-        if span_is_space {
-            n_space_blocks += span as usize;
+        if i % 2 == 0 {
+            n_file_blocks += span as usize;
         }
-        span_is_space = !span_is_space;
     }
 
-    let mut end_forward_walk = diskmap.len() - 1;
-    while n_space_blocks > 0 {
-        n_space_blocks = n_space_blocks.saturating_sub(diskmap[end_forward_walk] as usize);
-        end_forward_walk -= 1;
-    }
-
+    let mut n_checked_file_blocks = 0_usize;
     let mut bid = 0_usize;
     let mut span_is_file = true;
     let mut l_fid = 0;
@@ -124,8 +117,13 @@ pub(super) fn part1_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let mut r_blen = diskmap[r_fid * 2];
     let mut checksum = 0_usize;
 
-    for len in diskmap[..end_forward_walk].iter().copied() {
+    for len in diskmap.iter().copied() {
         if span_is_file {
+            n_checked_file_blocks += len as usize;
+            if n_checked_file_blocks >= n_file_blocks {
+                break;
+            }
+
             checksum += span_checksum(bid, len, l_fid);
             l_fid += 1;
             span_is_file = !span_is_file;
@@ -137,6 +135,8 @@ pub(super) fn part1_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 
         while span_len > 0 {
             let min_len = span_len.min(r_blen);
+            n_checked_file_blocks += min_len as usize;
+
             span_len -= min_len;
             r_blen -= min_len;
             checksum += span_checksum(bid, min_len, r_fid);
@@ -146,6 +146,10 @@ pub(super) fn part1_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
                 r_fid -= 1;
                 r_blen = diskmap[r_fid * 2];
             }
+        }
+
+        if n_checked_file_blocks >= n_file_blocks {
+            break;
         }
 
         span_is_file = !span_is_file;
