@@ -91,9 +91,9 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 /// Note the last two lines. The expression `0 + 1 + 2 + ..` is the sum of
 /// numbers from `0` to `n` where `n=blen`, for which there is the constant-time
 /// equation `n * (n - 1) / 2`.
-fn span_checksum(start_bid: usize, blen: u32, fid: usize) -> usize {
+fn span_checksum(start_bid: u32, blen: u32, fid: usize) -> usize {
     let blen = blen as usize;
-    fid * (blen * start_bid + (blen * (blen - 1) / 2))
+    fid * (blen * start_bid as usize + (blen * (blen - 1) / 2))
 }
 
 pub(super) fn part1_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
@@ -110,7 +110,7 @@ pub(super) fn part1_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     }
 
     let mut n_checked_file_blocks = 0_usize;
-    let mut bid = 0_usize;
+    let mut bid = 0_u32;
     let mut span_is_file = true;
     let mut l_fid = 0;
     let mut r_fid = (diskmap.len() - 1) / 2;
@@ -127,7 +127,7 @@ pub(super) fn part1_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
             checksum += span_checksum(bid, len, l_fid);
             l_fid += 1;
             span_is_file = !span_is_file;
-            bid += len as usize;
+            bid += len;
             continue;
         }
 
@@ -140,7 +140,7 @@ pub(super) fn part1_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
             span_len -= min_len;
             r_blen -= min_len;
             checksum += span_checksum(bid, min_len, r_fid);
-            bid += min_len as usize;
+            bid += min_len;
 
             if r_blen == 0 {
                 r_fid -= 1;
