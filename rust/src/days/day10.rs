@@ -53,32 +53,27 @@ impl<'input> Map<'input> {
 
         let next = height + 1;
 
-        if pos.col > 0 {
-            let pos_next = pos.ww();
-            if self[pos_next] == next {
-                self._score_trailhead_recurse(pos_next, next, trailends);
+        #[inline(always)]
+        fn _trail_step(map: &Map, pos_next: Pos, next: u8, trailends: &mut HashSet<Pos>) {
+            if map[pos_next] == next {
+                map._score_trailhead_recurse(pos_next, next, trailends);
             }
+        }
+
+        if pos.col > 0 {
+            _trail_step(self, pos.ww(), next, trailends);
         }
 
         if pos.col < self.width as u32 - 1 {
-            let pos_next = pos.ee();
-            if self[pos_next] == next {
-                self._score_trailhead_recurse(pos_next, next, trailends);
-            }
+            _trail_step(self, pos.ee(), next, trailends);
         }
 
         if pos.row > 0 {
-            let pos_next = pos.nn();
-            if self[pos_next] == next {
-                self._score_trailhead_recurse(pos_next, next, trailends);
-            }
+            _trail_step(self, pos.nn(), next, trailends);
         }
 
         if pos.row < self.height as u32 - 1 {
-            let pos_next = pos.ss();
-            if self[pos_next] == next {
-                self._score_trailhead_recurse(pos_next, next, trailends);
-            }
+            _trail_step(self, pos.ss(), next, trailends);
         }
     }
 }
