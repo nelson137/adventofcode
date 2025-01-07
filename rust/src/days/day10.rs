@@ -10,23 +10,33 @@ crate::day_visualizers! {
     []
 }
 
-struct Map {
+struct Map<'input> {
     height: usize,
     width: usize,
-    grid: Vec<Vec<u8>>,
+    grid: Vec<&'input [u8]>,
 }
 
-impl Map {
-    fn parse(input: &str) -> Self {
-        let input = input.trim();
+impl<'input> Map<'input> {
+    fn parse(input: &'input str) -> Self {
         let height = input.lines().count();
         let width = input.lines().next().unwrap().trim().len();
-        let grid = input.lines().map(|line| line.bytes().collect()).collect();
+        let mut grid = Vec::with_capacity(height);
+        grid.extend(input.lines().map(|line| line.as_bytes()));
         Self {
             height,
             width,
             grid,
         }
+    }
+
+    fn iter_trailheads(&self) -> impl Iterator<Item = Pos> {
+        self.grid.iter().copied().enumerate().flat_map(|(r, row)| {
+            row.iter()
+                .copied()
+                .enumerate()
+                .filter(|&(_, cell)| cell == b'0')
+                .map(move |(c, _)| Pos::new(r, c))
+        })
     }
 
     fn score_trailhead(&self, pos: Pos, trailends: &mut HashSet<Pos>) -> u32 {
@@ -116,7 +126,7 @@ impl Pos {
     }
 }
 
-impl ops::Index<Pos> for Map {
+impl ops::Index<Pos> for Map<'_> {
     type Output = u8;
 
     #[inline(always)]
@@ -128,17 +138,12 @@ impl ops::Index<Pos> for Map {
 pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let map = Map::parse(input);
 
-    let mut answer = 0;
     let mut trailends = HashSet::<Pos>::new();
 
-    for (r, row) in map.grid.iter().enumerate() {
-        for (c, cell) in row.iter().copied().enumerate() {
-            if cell == b'0' {
-                let pos = Pos::new(r, c);
-                answer += map.score_trailhead(pos, &mut trailends);
-            }
-        }
-    }
+    let answer = map
+        .iter_trailheads()
+        .map(|pos| map.score_trailhead(pos, &mut trailends))
+        .sum::<u32>();
 
     Some(Box::new(answer))
 }
