@@ -1,4 +1,7 @@
-use std::{collections::HashSet, ops};
+use std::{
+    collections::{HashMap, HashSet},
+    ops,
+};
 
 crate::day_executors! {
     [part1]
@@ -57,6 +60,44 @@ impl<'input> Map<'input> {
         fn _trail_step(map: &Map, pos_next: Pos, next: u8, trailends: &mut HashSet<Pos>) {
             if map[pos_next] == next {
                 map._score_trailhead_recurse(pos_next, next, trailends);
+            }
+        }
+
+        if pos.col > 0 {
+            _trail_step(self, pos.ww(), next, trailends);
+        }
+
+        if pos.col < self.width as u32 - 1 {
+            _trail_step(self, pos.ee(), next, trailends);
+        }
+
+        if pos.row > 0 {
+            _trail_step(self, pos.nn(), next, trailends);
+        }
+
+        if pos.row < self.height as u32 - 1 {
+            _trail_step(self, pos.ss(), next, trailends);
+        }
+    }
+
+    fn rate_trailhead(&self, pos: Pos, trailends: &mut HashMap<Pos, u32>) -> u32 {
+        trailends.clear();
+        self._rate_trailhead_recurse(pos, b'0', trailends);
+        trailends.values().sum()
+    }
+
+    fn _rate_trailhead_recurse(&self, pos: Pos, height: u8, trailends: &mut HashMap<Pos, u32>) {
+        if height == b'9' {
+            *trailends.entry(pos).or_default() += 1;
+            return;
+        }
+
+        let next = height + 1;
+
+        #[inline(always)]
+        fn _trail_step(map: &Map, pos_next: Pos, next: u8, trailends: &mut HashMap<Pos, u32>) {
+            if map[pos_next] == next {
+                map._rate_trailhead_recurse(pos_next, next, trailends);
             }
         }
 
@@ -144,7 +185,14 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 }
 
 pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    _ = input;
+    let map = Map::parse(input);
 
-    None
+    let mut trailends = HashMap::<Pos, u32>::new();
+
+    let answer = map
+        .iter_trailheads()
+        .map(|pos| map.rate_trailhead(pos, &mut trailends))
+        .sum::<u32>();
+
+    Some(Box::new(answer))
 }
