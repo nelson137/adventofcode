@@ -17,8 +17,15 @@ pub fn _count_digits_fast(v: u64) -> u64 {
 /// [Source](https://graphics.stanford.edu/~seander/bithacks.html#IntegerLog10)
 #[inline(always)]
 fn log10(v: u64) -> u64 {
-    static POWERS_OF_TEN: [u64; 10] = [
-        1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000,
+    #[rustfmt::skip]
+    static POWERS_OF_TEN: [u64; 20] = [
+        1,                         10,                         100,
+        1_000,                     10_000,                     100_000,
+        1_000_000,                 10_000_000,                 100_000_000,
+        1_000_000_000,             10_000_000_000,             100_000_000_000,
+        1_000_000_000_000,         10_000_000_000_000,         100_000_000_000_000,
+        1_000_000_000_000_000,     10_000_000_000_000_000,     100_000_000_000_000_000,
+        1_000_000_000_000_000_000, 10_000_000_000_000_000_000,
     ];
 
     let t = ((log2(v) + 1) * 1233) >> 12;
@@ -26,20 +33,24 @@ fn log10(v: u64) -> u64 {
 }
 
 /// [Source](https://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn)
+/// [Source](https://stackoverflow.com/a/36026194)
 #[inline(always)]
-fn log2(mut v: u64) -> u64 {
-    static MULTIPLY_DEBRUIJN_BIT_POS: [u64; 32] = [
-        0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30, 8, 12, 20, 28, 15, 17, 24, 7,
-        19, 27, 23, 6, 26, 5, 4, 31,
+pub fn log2(mut v: u64) -> u64 {
+    static MULTIPLY_DEBRUIJN_BIT_POS: [u64; 64] = [
+        0, 47, 1, 56, 48, 27, 2, 60, 57, 49, 41, 37, 28, 16, 3, 61, 54, 58, 35, 52, 50, 42, 21, 44,
+        38, 32, 29, 23, 17, 11, 4, 62, 46, 55, 26, 59, 40, 36, 15, 53, 34, 51, 20, 43, 31, 22, 10,
+        45, 25, 39, 14, 33, 19, 30, 9, 24, 13, 18, 8, 12, 7, 6, 5, 63,
     ];
 
-    v |= v >> 1; // first round down to one less than a power of 2 
+    // round up to one less than the next highest power of 2
+    v |= v >> 1;
     v |= v >> 2;
     v |= v >> 4;
     v |= v >> 8;
     v |= v >> 16;
+    v |= v >> 32;
 
-    MULTIPLY_DEBRUIJN_BIT_POS[0x07C4ACDD_u32.wrapping_mul(v as u32) as usize >> 27]
+    MULTIPLY_DEBRUIJN_BIT_POS[0x03F79D71B4CB0A89_u64.wrapping_mul(v) as usize >> 58]
 }
 
 #[cfg(test)]
@@ -51,6 +62,7 @@ mod tests {
         (2, 4), (2, 7),
         (3, 8), (3, 15),
         (4, 16), (4, 31),
+        (38, 352371081216),
     ];
 
     #[test]
