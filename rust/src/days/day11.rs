@@ -60,7 +60,29 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 }
 
 pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    _ = input;
+    const N_BLINKS: u32 = 75;
 
-    None
+    let mut stones = input
+        .trim()
+        .split(" ")
+        .map(|r| (r.parse::<u64>().unwrap(), N_BLINKS))
+        .collect::<Vec<_>>();
+
+    let mut n_stones = 0_u64;
+
+    while let Some((mut value, blinks_left)) = stones.pop() {
+        n_stones += 1;
+        for b in 1..=blinks_left {
+            if value == 0 {
+                value = 1;
+            } else if let Some((l, r)) = try_split_digits(value) {
+                value = l;
+                stones.push((r, blinks_left - b));
+            } else {
+                value *= 2024;
+            }
+        }
+    }
+
+    Some(Box::new(n_stones))
 }
