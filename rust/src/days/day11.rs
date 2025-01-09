@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use adventofcode as aoc;
 use rbtree::RBTree;
 
@@ -60,29 +62,31 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 }
 
 pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    const N_BLINKS: u32 = 75;
-
     let mut stones = input
         .trim()
         .split(" ")
-        .map(|r| (r.parse::<u64>().unwrap(), N_BLINKS))
-        .collect::<Vec<_>>();
+        .map(|r| (r.parse::<u64>().unwrap(), 1_u64))
+        .collect::<HashMap<_, _>>();
+    let mut next_stones = HashMap::new();
 
-    let mut n_stones = 0_u64;
+    const N_BLINKS: u32 = 75;
 
-    while let Some((mut value, blinks_left)) = stones.pop() {
-        n_stones += 1;
-        for b in 1..=blinks_left {
+    for _ in 0..N_BLINKS {
+        for (value, count) in stones.drain() {
             if value == 0 {
-                value = 1;
+                *next_stones.entry(1).or_default() += count;
             } else if let Some((l, r)) = try_split_digits(value) {
-                value = l;
-                stones.push((r, blinks_left - b));
+                *next_stones.entry(l).or_default() += count;
+                *next_stones.entry(r).or_default() += count;
             } else {
-                value *= 2024;
+                *next_stones.entry(value * 2024).or_default() += count;
             }
         }
+
+        std::mem::swap(&mut stones, &mut next_stones);
     }
+
+    let n_stones = stones.values().copied().sum::<u64>();
 
     Some(Box::new(n_stones))
 }
