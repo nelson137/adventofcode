@@ -93,7 +93,7 @@ impl Operator {
         match self {
             Self::Add => ops::Add::add(a, b),
             Self::Mul => ops::Mul::mul(a, b),
-            Self::Concat => a * 10_u64.pow(aoc::count_digits(b) as u32) + b,
+            Self::Concat => a * 10_u64.pow(aoc::count_digits(b as u32)) + b,
         }
     }
 }

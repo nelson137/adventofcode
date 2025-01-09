@@ -1,23 +1,23 @@
 #[inline(always)]
-pub fn count_digits(x: u64) -> u64 {
+pub fn count_digits(x: u32) -> u32 {
     _count_digits_fast(x)
 }
 
 #[cfg(any(test, feature = "bench"))]
 #[inline(always)]
-pub fn _count_digits_with_log(i: u64) -> u64 {
-    (i as f64 + 0.1).log10().ceil() as u64
+pub fn _count_digits_with_log(i: u32) -> u32 {
+    (i as f64 + 0.1).log10().ceil() as u32
 }
 
 #[inline(always)]
-pub fn _count_digits_fast(v: u64) -> u64 {
+pub fn _count_digits_fast(v: u32) -> u32 {
     log10(v) + 1
 }
 
 /// [Source](https://graphics.stanford.edu/~seander/bithacks.html#IntegerLog10)
 #[inline(always)]
-fn log10(v: u64) -> u64 {
-    static POWERS_OF_TEN: [u64; 10] = [
+fn log10(v: u32) -> u32 {
+    static POWERS_OF_TEN: [u32; 10] = [
         1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000,
     ];
 
@@ -27,8 +27,8 @@ fn log10(v: u64) -> u64 {
 
 /// [Source](https://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn)
 #[inline(always)]
-fn log2(mut v: u64) -> u64 {
-    static MULTIPLY_DEBRUIJN_BIT_POS: [u64; 32] = [
+fn log2(mut v: u32) -> u32 {
+    static MULTIPLY_DEBRUIJN_BIT_POS: [u32; 32] = [
         0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30, 8, 12, 20, 28, 15, 17, 24, 7,
         19, 27, 23, 6, 26, 5, 4, 31,
     ];
@@ -39,13 +39,13 @@ fn log2(mut v: u64) -> u64 {
     v |= v >> 8;
     v |= v >> 16;
 
-    MULTIPLY_DEBRUIJN_BIT_POS[0x07C4ACDD_u32.wrapping_mul(v as u32) as usize >> 27]
+    MULTIPLY_DEBRUIJN_BIT_POS[0x07C4ACDD_u32.wrapping_mul(v) as usize >> 27]
 }
 
 #[cfg(test)]
 mod tests {
     #[rustfmt::skip]
-    const LOG2_CASES: &[(u64, u64)] = &[
+    const LOG2_CASES: &[(u32, u32)] = &[
         (0, 1),
         (1, 2), (1, 3),
         (2, 4), (2, 7),
@@ -61,7 +61,7 @@ mod tests {
     }
 
     #[rustfmt::skip]
-    const LOG10_CASES: &[(u64, u64)] = &[
+    const LOG10_CASES: &[(u32, u32)] = &[
         (0, 1),     (0, 9),
         (1, 10),    (1, 11),    (1, 99),
         (2, 100),   (2, 101),   (2, 999),
@@ -77,7 +77,7 @@ mod tests {
     }
 
     #[rustfmt::skip]
-    const COUNT_DIGIT_CASES: &[(u64, u64)] = &[
+    const COUNT_DIGIT_CASES: &[(u32, u32)] = &[
         (1, 1),
         (2, 22),
         (3, 100), (3, 333),
