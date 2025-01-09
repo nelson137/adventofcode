@@ -70,7 +70,9 @@ macro_rules! day_visualizers {
     };
 }
 
-day_modules![day1, day2, day3, day4, day5, day6, day7, day8, day9, day10];
+day_modules![
+    day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11
+];
 
 pub(crate) fn execute_day(day_i: u32, part1: bool, part2: bool, input: String) -> DayResult {
     let executors = DAY_EXECUTORS[(day_i - 1) as usize];
