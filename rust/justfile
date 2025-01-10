@@ -1,2 +1,2 @@
 bench regex='.*':
-    cargo criterion --features bench -- '{{regex}}'
+    cargo criterion --output-format=quiet --features=bench -- '{{regex}}'
