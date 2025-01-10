@@ -13,6 +13,10 @@ harness = false
 required-features = ["bench"]
 
 [[bench]]
+name = "day11_hash"
+harness = false
+
+[[bench]]
 name = "sum_str_digits"
 harness = false
 
@@ -23,6 +27,7 @@ clap = { version = "4.5.23", features = ["derive"] }
 crc = "3.2.1"
 criterion = "0.5.1"
 crossterm = "0.28.1"
+fxhash = "0.2.1"
 gtk = { version = "0.9.5", package = "gtk4", features = ["v4_16"] }
 itertools = "0.14.0"
 paste = "1.0.15"
