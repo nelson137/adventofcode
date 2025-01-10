@@ -10,7 +10,7 @@ crate::day_visualizers! {
     []
 }
 
-pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let mut left = Vec::<u32>::new();
     let mut right = Vec::<u32>::new();
 
@@ -38,7 +38,7 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     Some(Box::new(answer))
 }
 
-pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let mut left = HashMap::<u32, u32>::new();
     let mut right = HashMap::<u32, u32>::new();
 

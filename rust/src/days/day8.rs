@@ -256,7 +256,7 @@ impl ops::SubAssign for Pos {
     }
 }
 
-pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let mut map = parse(input);
 
     let answer = map.find_antinodes();
@@ -264,7 +264,7 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     Some(Box::new(answer))
 }
 
-pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let mut map = parse(input);
 
     let answer = map.find_antinodes_with_resonant_harmonics();

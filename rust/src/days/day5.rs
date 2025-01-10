@@ -80,7 +80,7 @@ impl PrintRules {
     }
 }
 
-pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let (print_rules, updates) = parse(input);
 
     let answer = updates
@@ -92,7 +92,7 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     Some(Box::new(answer))
 }
 
-pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let (print_rules, mut updates) = parse(input);
 
     let answer = updates

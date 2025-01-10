@@ -26,7 +26,7 @@ fn parse_byte8(b: u8) -> u8 {
     }
 }
 
-pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let diskmap_str = input.trim();
 
     let disk_size = diskmap_str.bytes().map(parse_byte32).sum::<u32>() as usize;
@@ -104,7 +104,7 @@ fn span_checksum(start_bid: u32, blen: u32, fid: usize) -> usize {
     fid * (blen * start_bid as usize + (blen * (blen - 1) / 2))
 }
 
-pub(super) fn part1_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part1_v2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let diskmap_str = input.trim();
     let mut diskmap = Vec::<u32>::with_capacity(diskmap_str.len());
 
@@ -187,7 +187,7 @@ impl SpaceSpan {
     }
 }
 
-pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let diskmap_str = input.trim();
 
     let mut file_spans = Vec::<FileSpan>::with_capacity(diskmap_str.len() / 2 + 1);

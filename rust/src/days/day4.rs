@@ -221,7 +221,7 @@ impl Index<Pos> for WordSearch<'_> {
     }
 }
 
-pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let word_search = WordSearch::new(input);
 
     let answer = word_search.count_xmas();
@@ -229,7 +229,7 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     Some(Box::new(answer))
 }
 
-pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let word_search = WordSearch::new(input);
 
     let answer = word_search.count_mas_x();
