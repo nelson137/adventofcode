@@ -98,7 +98,7 @@ impl Operator {
     }
 }
 
-pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let calibration = parse(input);
 
     let ops = [Operator::Add, Operator::Mul];
@@ -111,7 +111,7 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     Some(Box::new(answer))
 }
 
-pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let calibration = parse(input);
 
     let ops = [Operator::Add, Operator::Mul, Operator::Concat];

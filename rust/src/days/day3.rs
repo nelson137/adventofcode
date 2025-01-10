@@ -10,7 +10,7 @@ crate::day_visualizers! {
     []
 }
 
-pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let args_re = Regex::new(r"mul\((?<a>\d+),(?<b>\d+)\)").unwrap();
 
     let answer = args_re
@@ -25,7 +25,7 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     Some(Box::new(answer))
 }
 
-pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let args_re =
         Regex::new(r"(?<do>do\(\))|(?<dont>don't\(\))|(mul\((?<a>\d+),(?<b>\d+)\))").unwrap();
 

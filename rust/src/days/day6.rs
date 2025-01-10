@@ -567,7 +567,7 @@ impl fmt::Display for Direction {
     }
 }
 
-pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let (mut map, start_pos) = parse(input);
 
     map.walk_from(start_pos);
@@ -577,7 +577,7 @@ pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     Some(Box::new(answer))
 }
 
-pub(super) fn part2_brute(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part2_brute(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let (mut map, start_pos) = parse(input);
 
     map.walk_from(start_pos);
@@ -587,7 +587,7 @@ pub(super) fn part2_brute(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     Some(Box::new(answer))
 }
 
-pub(super) fn part2_fast(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part2_fast(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let (mut map, cursor) = parse(input);
 
     let answer = map.walk_and_find_loop_candidates(cursor);
@@ -595,7 +595,7 @@ pub(super) fn part2_fast(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     Some(Box::new(answer))
 }
 
-pub(super) fn part2_fast_viz(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part2_fast_viz(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let (mut map, cursor) = parse(input);
 
     viz_gtk::viz_main(&mut map, cursor);

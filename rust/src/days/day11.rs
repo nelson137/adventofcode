@@ -48,12 +48,12 @@ fn blink_in_infinite_corridor<const N_BLINKS: u32>(input: &str) -> u64 {
     stones.values().copied().sum::<u64>()
 }
 
-pub(super) fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let n_stones = blink_in_infinite_corridor::<25>(input);
     Some(Box::new(n_stones))
 }
 
-pub(super) fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let n_stones = blink_in_infinite_corridor::<75>(input);
     Some(Box::new(n_stones))
 }
