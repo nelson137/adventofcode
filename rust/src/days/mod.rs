@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+use anyhow::{Result, bail};
 use criterion::{BenchmarkId, Criterion};
 
 pub(crate) type DayPartAnswer = Box<dyn ::std::fmt::Display>;
@@ -93,12 +94,25 @@ pub(crate) fn execute_day(day_i: u32, part1: bool, part2: bool, input: String) -
     DayResult(part1_result, part2_result)
 }
 
-pub(crate) fn bench_day(c: &mut Criterion, day_i: u32, part1: bool, part2: bool, input: String) {
+pub(crate) fn bench_day(
+    c: &mut Criterion,
+    day_i: u32,
+    part1: bool,
+    part2: bool,
+    input: String,
+) -> Result<()> {
     let day_executors = DAY_EXECUTORS[(day_i - 1) as usize];
+
+    let commit = crate::commit::get_existing_commit(day_i)?;
 
     if part1 {
         let mut group = c.benchmark_group(format!("Day{day_i}-Pt1"));
         for &(name, run) in day_executors.0 {
+            if let (Some(c), Some(answer)) = (&commit, run(&input)) {
+                if crate::commit::DayPartCommit::new(&answer) != c.part2 {
+                    bail!("incorrect bench impl :(");
+                }
+            }
             let id = BenchmarkId::new(name, "in");
             group.bench_with_input(id, &*input, |b, i| b.iter(|| run(i)));
         }
@@ -107,10 +121,17 @@ pub(crate) fn bench_day(c: &mut Criterion, day_i: u32, part1: bool, part2: bool,
     if part2 {
         let mut group = c.benchmark_group(format!("Day{day_i}-Pt2"));
         for &(name, run) in day_executors.1 {
+            if let (Some(c), Some(answer)) = (&commit, run(&input)) {
+                if crate::commit::DayPartCommit::new(&answer) != c.part2 {
+                    bail!("incorrect bench impl :(");
+                }
+            }
             let id = BenchmarkId::new(name, "in");
             group.bench_with_input(id, &*input, |b, i| b.iter(|| run(i)));
         }
     }
+
+    Ok(())
 }
 
 pub(crate) fn get_day_visualizers(day_i: u32) -> DayVisualizers {

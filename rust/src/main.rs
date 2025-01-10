@@ -108,7 +108,7 @@ impl CliBenchCommand {
             self.parts.part1(),
             self.parts.part2(),
             input,
-        );
+        )?;
 
         criterion::Criterion::default().final_summary();
 
