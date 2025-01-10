@@ -139,7 +139,7 @@ impl CliCommitCommand {
         };
 
         let existing_commit = commit::get_existing_commit(self.day.0)?;
-        let commit = commit::DayAnswersCommit::new(&result1.answer, &result2.answer);
+        let commit = commit::DayCommit::new(&result1.answer, &result2.answer);
 
         if let Some(existing_commit) = existing_commit {
             if commit == existing_commit {
@@ -148,12 +148,12 @@ impl CliCommitCommand {
             } else if self.force {
                 println!(
                     "Part 1: {}  {}",
-                    commit.answer1.trim(),
+                    commit.part1.answer.trim(),
                     format!("({:?})", result1.duration).dark_grey(),
                 );
                 println!(
                     "Part 2: {}  {}",
-                    commit.answer2.trim(),
+                    commit.part2.answer.trim(),
                     format!("({:?})", result2.duration).dark_grey(),
                 );
                 commit::write_day_answers(self.day.0, &commit)?;
@@ -163,28 +163,28 @@ impl CliCommitCommand {
                     self.day.0
                 );
                 eprintln!("Use `--force` to overwrite");
-                if commit.answer1_checksum != existing_commit.answer1_checksum {
+                if commit.part1 != existing_commit.part1 {
                     eprintln!();
                     eprintln!("Part 1:");
                     eprintln!("<<<<<<< commited answer");
-                    eprintln!("{}", existing_commit.answer1.trim());
+                    eprintln!("{}", existing_commit.part1.answer.trim());
                     eprintln!("=======");
-                    eprintln!("{}", commit.answer1.trim());
+                    eprintln!("{}", commit.part1.answer.trim());
                     eprintln!(">>>>>>> current run answer");
                 }
-                if commit.answer2_checksum != existing_commit.answer2_checksum {
+                if commit.part2 != existing_commit.part2 {
                     eprintln!();
                     eprintln!("Part 2:");
                     eprintln!("<<<<<<< commited answer");
-                    eprintln!("{}", existing_commit.answer2.trim());
+                    eprintln!("{}", existing_commit.part2.answer.trim());
                     eprintln!("=======");
-                    eprintln!("{}", commit.answer2.trim());
+                    eprintln!("{}", commit.part2.answer.trim());
                     eprintln!(">>>>>>> current run answer");
                 }
             }
         } else {
-            println!("Part 1: {}", commit.answer1.trim());
-            println!("Part 2: {}", commit.answer2.trim());
+            println!("Part 1: {}", commit.part1.answer.trim());
+            println!("Part 2: {}", commit.part2.answer.trim());
             commit::write_day_answers(self.day.0, &commit)?;
         }
 
