@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use adventofcode as aoc;
 
 crate::day_executors! {
@@ -25,12 +23,12 @@ fn try_split_digits(value: u64) -> Option<(u64, u64)> {
 }
 
 fn blink_in_infinite_corridor<const N_BLINKS: u32>(input: &str) -> u64 {
-    let mut stones = input
-        .trim()
-        .split(" ")
-        .map(|r| (r.parse::<u64>().unwrap(), 1_u64))
-        .collect::<HashMap<_, _>>();
-    let mut next_stones = HashMap::new();
+    let mut stones = aoc::HashMap::default();
+    for value in input.trim().split(" ").map(|r| r.parse::<u64>().unwrap()) {
+        stones.insert(value, 1);
+    }
+
+    let mut next_stones = aoc::HashMap::default();
 
     for _ in 0..N_BLINKS {
         for (value, count) in stones.drain() {

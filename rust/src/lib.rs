@@ -1,4 +1,4 @@
-use std::hash;
+use std::{collections, hash};
 
 #[inline(always)]
 pub fn count_digits(x: u64) -> u64 {
@@ -54,6 +54,8 @@ pub fn log2(mut v: u64) -> u64 {
 
     MULTIPLY_DEBRUIJN_BIT_POS[0x03F79D71B4CB0A89_u64.wrapping_mul(v) as usize >> 58]
 }
+
+pub type HashMap<K, V> = collections::HashMap<K, V, hash::BuildHasherDefault<Murmur3MixHash64>>;
 
 #[derive(Default)]
 pub struct Murmur3MixHash64 {
