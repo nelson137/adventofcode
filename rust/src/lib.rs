@@ -1,3 +1,5 @@
+use std::hash;
+
 #[inline(always)]
 pub fn count_digits(x: u64) -> u64 {
     _count_digits_fast(x)
@@ -51,6 +53,34 @@ pub fn log2(mut v: u64) -> u64 {
     v |= v >> 32;
 
     MULTIPLY_DEBRUIJN_BIT_POS[0x03F79D71B4CB0A89_u64.wrapping_mul(v) as usize >> 58]
+}
+
+#[derive(Default)]
+pub struct Murmur3MixHash64 {
+    value: u64,
+}
+
+impl hash::Hasher for Murmur3MixHash64 {
+    #[inline(always)]
+    fn finish(&self) -> u64 {
+        self.value
+    }
+
+    #[inline(always)]
+    fn write(&mut self, bytes: &[u8]) {
+        debug_assert_eq!(bytes.len(), 8);
+        let ptr = bytes.as_ptr() as *const [u8; 8];
+        // SAFETY: we know bytes will have length 8 because it will always be a u64
+        self.value = u64::from_ne_bytes(unsafe { *ptr });
+
+        // The 64-bit finalizer mixer from MurmerHash3:
+        // https://github.com/aappleby/smhasher/blob/0ff96f7835817a27d0487325b6c16033e2992eb5/src/MurmurHash3.cpp#L83-L87
+        self.value ^= self.value >> 33;
+        self.value *= 0xff51afd7ed558ccd;
+        self.value ^= self.value >> 33;
+        self.value *= 0xc4ceb9fe1a85ec53;
+        self.value ^= self.value >> 33;
+    }
 }
 
 #[cfg(test)]
