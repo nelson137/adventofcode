@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, fmt, ops};
+use std::{fmt, ops};
 
 crate::day_executors! {
     [part1]
@@ -60,7 +60,12 @@ impl<'input> Map<'input> {
         pos.col == 0
     }
 
-    fn floodfill_region_cost(&mut self, seed: Pos, region_id: &mut u32) -> u64 {
+    fn floodfill_region_cost(
+        &mut self,
+        seed: Pos,
+        region_id: &mut u32,
+        to_search: &mut Vec<Pos>,
+    ) -> u64 {
         if self.plot_region_ids[seed] < u32::MAX {
             return 0;
         }
@@ -69,9 +74,10 @@ impl<'input> Map<'input> {
         let mut area = 0_u64;
         let mut perimeter = 0_u64;
 
-        let mut to_search = VecDeque::from_iter([seed]);
+        to_search.clear();
+        to_search.push(seed);
 
-        while let Some(pos) = to_search.pop_front() {
+        while let Some(pos) = to_search.pop() {
             {
                 let pos_id = &mut self.plot_region_ids[pos];
                 if *pos_id == *region_id {
@@ -89,7 +95,7 @@ impl<'input> Map<'input> {
                     let next = pos.ww();
                     if self.plot(next) == plot {
                         if self.plot_region_ids.cell_is_unmapped(next) {
-                            to_search.push_back(next);
+                            to_search.push(next);
                         }
                     } else {
                         perimeter += 1;
@@ -104,7 +110,7 @@ impl<'input> Map<'input> {
                     let next = pos.ee();
                     if self.plot(next) == plot {
                         if self.plot_region_ids.cell_is_unmapped(next) {
-                            to_search.push_back(next);
+                            to_search.push(next);
                         }
                     } else {
                         perimeter += 1;
@@ -119,7 +125,7 @@ impl<'input> Map<'input> {
                     let next = pos.nn();
                     if self.plot(next) == plot {
                         if self.plot_region_ids.cell_is_unmapped(next) {
-                            to_search.push_back(next);
+                            to_search.push(next);
                         }
                     } else {
                         perimeter += 1;
@@ -134,7 +140,7 @@ impl<'input> Map<'input> {
                     let next = pos.ss();
                     if self.plot(next) == plot {
                         if self.plot_region_ids.cell_is_unmapped(next) {
-                            to_search.push_back(next);
+                            to_search.push(next);
                         }
                     } else {
                         perimeter += 1;
@@ -152,10 +158,13 @@ impl<'input> Map<'input> {
 
         let mut total_fence_cost = 0_u64;
 
+        let mut to_search = Vec::<Pos>::with_capacity(self.plot_region_ids.map.len() / 4);
+
         for r in 0..self.height {
             for c in 0..self.width {
                 let seed = Pos::new(r, c);
-                total_fence_cost += self.floodfill_region_cost(seed, &mut region_id);
+                total_fence_cost +=
+                    self.floodfill_region_cost(seed, &mut region_id, &mut to_search);
             }
         }
 
