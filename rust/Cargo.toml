@@ -20,6 +20,10 @@ harness = false
 name = "sum_str_digits"
 harness = false
 
+[[bench]]
+name = "round_to_nearest_pow2"
+harness = false
+
 [dependencies]
 anyhow = "1.0.94"
 bitflags = "2.6.0"
