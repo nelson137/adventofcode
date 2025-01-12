@@ -14,7 +14,7 @@ struct Map<'input> {
     height: usize,
     width: usize,
     plots: Vec<&'input [u8]>,
-    plot_region_ids: FlatMap<u32>,
+    mapped_plots: FlatMap<bool>,
 }
 
 impl<'input> Map<'input> {
@@ -25,13 +25,13 @@ impl<'input> Map<'input> {
         let mut plots = Vec::with_capacity(height);
         plots.extend(input.lines().map(|line| line.as_bytes()));
 
-        let plot_region_ids = FlatMap::new(height, width, u32::MAX);
+        let mapped_plots = FlatMap::new(height, width, false);
 
         Self {
             height,
             width,
             plots,
-            plot_region_ids,
+            mapped_plots,
         }
     }
 
@@ -60,13 +60,8 @@ impl<'input> Map<'input> {
         pos.col == 0
     }
 
-    fn floodfill_region_cost(
-        &mut self,
-        seed: Pos,
-        region_id: &mut u32,
-        to_search: &mut Vec<Pos>,
-    ) -> u64 {
-        if self.plot_region_ids[seed] < u32::MAX {
+    fn floodfill_region_cost(&mut self, seed: Pos, to_search: &mut Vec<Pos>) -> u64 {
+        if self.mapped_plots[seed] {
             return 0;
         }
 
@@ -109,10 +104,10 @@ impl<'input> Map<'input> {
         while let Some(pos) = to_search.pop() {
             // Set
             {
-                if self.plot_region_ids[pos] == *region_id {
+                if self.mapped_plots[pos] {
                     continue;
                 }
-                self.plot_region_ids[pos] = *region_id;
+                self.mapped_plots[pos] = true;
                 area += 1;
             }
 
@@ -126,12 +121,12 @@ impl<'input> Map<'input> {
                 next = next.ww();
 
                 if self.plot(next) == plot {
-                    if self.plot_region_ids.cell_is_unmapped(next) {
+                    if self.mapped_plots[next] {
+                        break next.col + 1;
+                    } else {
                         // Set
                         area += 1;
-                        self.plot_region_ids[next] = *region_id;
-                    } else {
-                        break next.col + 1;
+                        self.mapped_plots[next] = true;
                     }
                 } else {
                     perimeter += 1;
@@ -149,12 +144,12 @@ impl<'input> Map<'input> {
                 next = next.ee();
 
                 if self.plot(next) == plot {
-                    if self.plot_region_ids.cell_is_unmapped(next) {
+                    if self.mapped_plots[next] {
+                        break next.col - 1;
+                    } else {
                         // Set
                         area += 1;
-                        self.plot_region_ids[next] = *region_id;
-                    } else {
-                        break next.col - 1;
+                        self.mapped_plots[next] = true;
                     }
                 } else {
                     perimeter += 1;
@@ -175,7 +170,6 @@ impl<'input> Map<'input> {
             }
         }
 
-        *region_id += 1;
         area * perimeter
     }
 
@@ -196,7 +190,7 @@ impl<'input> Map<'input> {
             if self.plot(next) != plot {
                 span_added = false;
                 added_perimeter += 1;
-            } else if !span_added && self.plot_region_ids.cell_is_unmapped(next) {
+            } else if !span_added && !self.mapped_plots[next] {
                 to_search.push(next);
                 span_added = true;
             }
@@ -208,17 +202,14 @@ impl<'input> Map<'input> {
     }
 
     fn floodfill_solve(&mut self) -> u64 {
-        let mut region_id = 0_u32;
-
         let mut total_fence_cost = 0_u64;
 
-        let mut to_search = Vec::<Pos>::with_capacity(self.plot_region_ids.map.len() / 4);
+        let mut to_search = Vec::<Pos>::with_capacity(self.mapped_plots.map.len() / 4);
 
         for r in 0..self.height {
             for c in 0..self.width {
                 let seed = Pos::new(r, c);
-                total_fence_cost +=
-                    self.floodfill_region_cost(seed, &mut region_id, &mut to_search);
+                total_fence_cost += self.floodfill_region_cost(seed, &mut to_search);
             }
         }
 
@@ -229,20 +220,14 @@ impl<'input> Map<'input> {
 struct FlatMap<T> {
     width: usize,
     map: Vec<T>,
-    sentinel: T,
 }
 
 impl<T: Clone + Copy + PartialEq + Eq> FlatMap<T> {
-    fn new(height: usize, width: usize, sentinel: T) -> Self {
+    fn new(height: usize, width: usize, init: T) -> Self {
         Self {
             width,
-            map: vec![sentinel; height * width],
-            sentinel,
+            map: vec![init; height * width],
         }
-    }
-
-    fn cell_is_unmapped(&self, pos: Pos) -> bool {
-        self[pos] == self.sentinel
     }
 }
 
