@@ -60,6 +60,26 @@ impl<'input> Map<'input> {
         pos.col == 0
     }
 
+    #[inline(always)]
+    fn pos_on_orthogonal1_edge(&self, pos: Pos, direction: Direction) -> bool {
+        match direction {
+            Direction::North => self.pos_on_east_edge(pos),
+            Direction::East => self.pos_on_south_edge(pos),
+            Direction::South => self.pos_on_west_edge(pos),
+            Direction::West => self.pos_on_north_edge(pos),
+        }
+    }
+
+    #[inline(always)]
+    fn pos_on_orthogonal2_edge(&self, pos: Pos, direction: Direction) -> bool {
+        match direction {
+            Direction::North => self.pos_on_west_edge(pos),
+            Direction::East => self.pos_on_north_edge(pos),
+            Direction::South => self.pos_on_east_edge(pos),
+            Direction::West => self.pos_on_south_edge(pos),
+        }
+    }
+
     fn floodfill_region_cost(&mut self, seed: Pos, to_search: &mut Vec<Pos>) -> u64 {
         if self.mapped_plots[seed] {
             return 0;
@@ -215,6 +235,233 @@ impl<'input> Map<'input> {
 
         total_fence_cost
     }
+
+    fn floodfill_region_bulk_cost(&mut self, seed: Pos, to_search: &mut Vec<Pos>) -> u64 {
+        if self.mapped_plots[seed] {
+            return 0;
+        }
+
+        let plot = self.plot(seed);
+        let mut area = 0_u64;
+        let mut sides = 0_u64;
+
+        to_search.clear();
+        to_search.push(seed);
+
+        while let Some(pos) = to_search.pop() {
+            // Set
+            if self.mapped_plots[pos] {
+                continue;
+            }
+            self.mapped_plots[pos] = true;
+            area += 1;
+
+            if self.pos_on_west_edge(pos) {
+                self.floodfill_scan_edge_bulk_orthogonal(
+                    plot,
+                    pos,
+                    Direction::West,
+                    &mut area,
+                    &mut sides,
+                    to_search,
+                );
+            } else {
+                let next = pos.ww();
+                if self.plot(next) == plot {
+                    if !self.mapped_plots[next] {
+                        to_search.push(next);
+                    }
+                } else {
+                    self.floodfill_scan_edge_bulk_orthogonal(
+                        plot,
+                        pos,
+                        Direction::West,
+                        &mut area,
+                        &mut sides,
+                        to_search,
+                    );
+                }
+            }
+
+            if self.pos_on_east_edge(pos) {
+                self.floodfill_scan_edge_bulk_orthogonal(
+                    plot,
+                    pos,
+                    Direction::East,
+                    &mut area,
+                    &mut sides,
+                    to_search,
+                );
+            } else {
+                let next = pos.ee();
+                if self.plot(next) == plot {
+                    if !self.mapped_plots[next] {
+                        to_search.push(next);
+                    }
+                } else {
+                    self.floodfill_scan_edge_bulk_orthogonal(
+                        plot,
+                        pos,
+                        Direction::East,
+                        &mut area,
+                        &mut sides,
+                        to_search,
+                    );
+                }
+            }
+
+            if self.pos_on_north_edge(pos) {
+                self.floodfill_scan_edge_bulk_orthogonal(
+                    plot,
+                    pos,
+                    Direction::North,
+                    &mut area,
+                    &mut sides,
+                    to_search,
+                );
+            } else {
+                let next = pos.nn();
+                if self.plot(next) == plot {
+                    if !self.mapped_plots[next] {
+                        to_search.push(next);
+                    }
+                } else {
+                    self.floodfill_scan_edge_bulk_orthogonal(
+                        plot,
+                        pos,
+                        Direction::North,
+                        &mut area,
+                        &mut sides,
+                        to_search,
+                    );
+                }
+            }
+
+            if self.pos_on_south_edge(pos) {
+                self.floodfill_scan_edge_bulk_orthogonal(
+                    plot,
+                    pos,
+                    Direction::South,
+                    &mut area,
+                    &mut sides,
+                    to_search,
+                );
+            } else {
+                let next = pos.ss();
+                if self.plot(next) == plot {
+                    if !self.mapped_plots[next] {
+                        to_search.push(next);
+                    }
+                } else {
+                    self.floodfill_scan_edge_bulk_orthogonal(
+                        plot,
+                        pos,
+                        Direction::South,
+                        &mut area,
+                        &mut sides,
+                        to_search,
+                    );
+                }
+            }
+        }
+
+        println!(
+            "[{}] area={area} sides={sides} | {}",
+            plot as char,
+            area * sides
+        );
+
+        area * sides
+    }
+
+    fn floodfill_scan_edge_bulk_orthogonal(
+        &mut self,
+        plot: u8,
+        pos: Pos,
+        direction: Direction,
+        area: &mut u64,
+        sides: &mut u64,
+        to_search: &mut Vec<Pos>,
+    ) {
+        *sides += 1;
+
+        if !self.pos_on_orthogonal1_edge(pos, direction) {
+            let mut next = pos;
+            loop {
+                next = next.move_in_orthogonal1(direction);
+                if self.mapped_plots[next] || self.plot(next) != plot {
+                    break;
+                }
+                self.mapped_plots[next] = true;
+                *area += 1;
+                to_search.push(next);
+                if self.pos_on_orthogonal1_edge(next, direction) {
+                    self.floodfill_scan_edge_bulk_orthogonal(
+                        plot,
+                        next,
+                        direction.to_orthogonal1(),
+                        area,
+                        sides,
+                        to_search,
+                    );
+                    break;
+                }
+            }
+        }
+
+        if !self.pos_on_orthogonal2_edge(pos, direction) {
+            let mut next = pos;
+            loop {
+                next = next.move_in_orthogonal2(direction);
+                if self.mapped_plots[next] || self.plot(next) != plot {
+                    break;
+                }
+                self.mapped_plots[next] = true;
+                *area += 1;
+                to_search.push(next);
+                if self.pos_on_orthogonal2_edge(next, direction) {
+                    self.floodfill_scan_edge_bulk_orthogonal(
+                        plot,
+                        next,
+                        direction.to_orthogonal2(),
+                        area,
+                        sides,
+                        to_search,
+                    );
+                    break;
+                }
+            }
+        }
+    }
+
+    // fn floodfill_scan_bulk_orthogonal(
+    //     &mut self,
+    //     plot: u8,
+    //     pos: Pos,
+    //     direction: Direction,
+    //     sides: &mut u64,
+    // ) {
+    //     *sides += 1;
+    //
+    //     if !self.pos_on_orthogonal1_edge(pos, direction) {
+    //         let mut next = pos;
+    //     }
+    // }
+
+    fn floodfill_solve_bulk(&mut self) -> u64 {
+        let mut total_fence_cost = 0_u64;
+
+        let mut to_search = Vec::<Pos>::with_capacity(self.mapped_plots.map.len() / 4);
+
+        for r in 0..self.height {
+            for c in 0..self.width {
+                let seed = Pos::new(r, c);
+                total_fence_cost += self.floodfill_region_bulk_cost(seed, &mut to_search);
+            }
+        }
+
+        total_fence_cost
+    }
 }
 
 struct FlatMap<T> {
@@ -227,6 +474,34 @@ impl<T: Clone + Copy + PartialEq + Eq> FlatMap<T> {
         Self {
             width,
             map: vec![init; height * width],
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum Direction {
+    North,
+    East,
+    South,
+    West,
+}
+
+impl Direction {
+    fn to_orthogonal1(self) -> Self {
+        match self {
+            Self::North => Self::East,
+            Self::East => Self::South,
+            Self::South => Self::West,
+            Self::West => Self::North,
+        }
+    }
+
+    fn to_orthogonal2(self) -> Self {
+        match self {
+            Direction::North => Self::West,
+            Direction::East => Self::North,
+            Direction::South => Self::East,
+            Direction::West => Self::South,
         }
     }
 }
@@ -248,6 +523,24 @@ impl Pos {
         Self {
             row: row as u32,
             col: col as u32,
+        }
+    }
+
+    fn move_in_orthogonal1(self, direction: Direction) -> Self {
+        match direction {
+            Direction::North => self.ee(),
+            Direction::East => self.ss(),
+            Direction::South => self.ww(),
+            Direction::West => self.nn(),
+        }
+    }
+
+    fn move_in_orthogonal2(self, direction: Direction) -> Self {
+        match direction {
+            Direction::North => self.ww(),
+            Direction::East => self.nn(),
+            Direction::South => self.ee(),
+            Direction::West => self.ss(),
         }
     }
 
@@ -308,7 +601,9 @@ fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 }
 
 fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    _ = input;
+    println!("{input}");
+    let mut map = Map::parse(input);
+    let total_cost = map.floodfill_solve_bulk();
 
-    None
+    Some(Box::new(total_cost))
 }
