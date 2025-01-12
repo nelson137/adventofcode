@@ -199,8 +199,8 @@ impl CliCommitCommand {
 #[derive(Subcommand, Clone, Debug)]
 enum CliInputCommand {
     Get {
-        #[arg(long)]
-        test: bool,
+        #[arg(long, num_args = 0..=1, require_equals = true, default_missing_value = "1")]
+        test: Option<u32>,
 
         #[arg(value_parser = DayParser)]
         day: Day,
@@ -208,6 +208,9 @@ enum CliInputCommand {
     SetTest {
         #[arg(value_parser = DayParser)]
         day: Day,
+
+        #[arg(default_value_t = 1)]
+        test: u32,
     },
 }
 
@@ -215,16 +218,16 @@ impl CliInputCommand {
     fn run(self) -> Result<()> {
         match self {
             Self::Get { test, day } => {
-                if test {
-                    let day_test_input = input::get_test_input(day.0)?;
+                if let Some(test_i) = test {
+                    let day_test_input = input::get_test_input(day.0, test_i)?;
                     print!("{day_test_input}");
                 } else {
                     let day_input = input::get_input(day.0)?;
                     print!("{day_input}");
                 }
             }
-            Self::SetTest { day } => {
-                input::set_test_input(day.0)?;
+            Self::SetTest { day, test } => {
+                input::set_test_input(day.0, test)?;
             }
         }
         Ok(())
@@ -240,8 +243,8 @@ struct CliRunCommand {
     #[command(flatten)]
     parts: CliDefaultedPartsGroup,
 
-    #[arg(long)]
-    test: bool,
+    #[arg(long, num_args = 0..=1, require_equals = true, default_missing_value = "1")]
+    test: Option<u32>,
 
     #[arg(value_parser = DayParser)]
     day: Day,
@@ -249,8 +252,8 @@ struct CliRunCommand {
 
 impl CliRunCommand {
     fn run(self) -> Result<()> {
-        let input = if self.test {
-            input::get_test_input(self.day.0)?
+        let input = if let Some(test_i) = self.test {
+            input::get_test_input(self.day.0, test_i)?
         } else {
             input::get_input(self.day.0)?
         };
