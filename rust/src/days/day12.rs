@@ -77,80 +77,134 @@ impl<'input> Map<'input> {
         to_search.clear();
         to_search.push(seed);
 
+        // From [Span Filling on Wikipedia](https://en.wikipedia.org/wiki/Flood_fill#Span_filling):
+        //
+        // ```
+        // fn fill(x, y):
+        //     if not Inside(x, y) then return
+        //     let s = new empty stack or queue
+        //     Add (x, y) to s
+        //     while s is not empty:
+        //         Remove an (x, y) from s
+        //         let lx = x
+        //         while Inside(lx - 1, y):
+        //             Set(lx - 1, y)
+        //             lx = lx - 1
+        //         while Inside(x, y):
+        //             Set(x, y)
+        //             x = x + 1
+        //       scan(lx, x - 1, y + 1, s)
+        //       scan(lx, x - 1, y - 1, s)
+        //
+        // fn scan(lx, rx, y, s):
+        //     let span_added = false
+        //     for x in lx .. rx:
+        //         if not Inside(x, y):
+        //             span_added = false
+        //         else if not span_added:
+        //             Add (x, y) to s
+        //             span_added = true
+        // ```
+
         while let Some(pos) = to_search.pop() {
+            // Set
             {
-                let pos_id = &mut self.plot_region_ids[pos];
-                if *pos_id == *region_id {
+                if self.plot_region_ids[pos] == *region_id {
                     continue;
                 }
-                *pos_id = *region_id;
+                self.plot_region_ids[pos] = *region_id;
+                area += 1;
             }
 
-            area += 1;
-
-            {
-                if self.pos_on_west_edge(pos) {
+            let mut next = pos;
+            let l_col = loop {
+                if self.pos_on_west_edge(next) {
                     perimeter += 1;
-                } else {
-                    let next = pos.ww();
-                    if self.plot(next) == plot {
-                        if self.plot_region_ids.cell_is_unmapped(next) {
-                            to_search.push(next);
-                        }
-                    } else {
-                        perimeter += 1;
-                    }
+                    break next.col;
                 }
+
+                next = next.ww();
+
+                if self.plot(next) == plot {
+                    if self.plot_region_ids.cell_is_unmapped(next) {
+                        // Set
+                        area += 1;
+                        self.plot_region_ids[next] = *region_id;
+                    } else {
+                        break next.col + 1;
+                    }
+                } else {
+                    perimeter += 1;
+                    break next.col + 1;
+                }
+            };
+
+            let mut next = pos;
+            let r_col = loop {
+                if self.pos_on_east_edge(next) {
+                    perimeter += 1;
+                    break next.col;
+                }
+
+                next = next.ee();
+
+                if self.plot(next) == plot {
+                    if self.plot_region_ids.cell_is_unmapped(next) {
+                        // Set
+                        area += 1;
+                        self.plot_region_ids[next] = *region_id;
+                    } else {
+                        break next.col - 1;
+                    }
+                } else {
+                    perimeter += 1;
+                    break next.col - 1;
+                }
+            };
+
+            if self.pos_on_south_edge(pos) {
+                perimeter += (1 + r_col - l_col) as u64;
+            } else {
+                perimeter += self.floodfill_scan(plot, pos.row + 1, l_col, r_col, to_search);
             }
 
-            {
-                if self.pos_on_east_edge(pos) {
-                    perimeter += 1;
-                } else {
-                    let next = pos.ee();
-                    if self.plot(next) == plot {
-                        if self.plot_region_ids.cell_is_unmapped(next) {
-                            to_search.push(next);
-                        }
-                    } else {
-                        perimeter += 1;
-                    }
-                }
-            }
-
-            {
-                if self.pos_on_north_edge(pos) {
-                    perimeter += 1;
-                } else {
-                    let next = pos.nn();
-                    if self.plot(next) == plot {
-                        if self.plot_region_ids.cell_is_unmapped(next) {
-                            to_search.push(next);
-                        }
-                    } else {
-                        perimeter += 1;
-                    }
-                }
-            }
-
-            {
-                if self.pos_on_south_edge(pos) {
-                    perimeter += 1;
-                } else {
-                    let next = pos.ss();
-                    if self.plot(next) == plot {
-                        if self.plot_region_ids.cell_is_unmapped(next) {
-                            to_search.push(next);
-                        }
-                    } else {
-                        perimeter += 1;
-                    }
-                }
+            if self.pos_on_north_edge(pos) {
+                perimeter += (1 + r_col - l_col) as u64;
+            } else {
+                perimeter += self.floodfill_scan(plot, pos.row - 1, l_col, r_col, to_search);
             }
         }
 
         *region_id += 1;
         area * perimeter
+    }
+
+    #[inline(always)]
+    fn floodfill_scan(
+        &self,
+        plot: u8,
+        row: u32,
+        l_col: u32,
+        r_col: u32,
+        to_search: &mut Vec<Pos>,
+    ) -> u64 {
+        let mut next = Pos { row, col: l_col };
+        let mut span_added = false;
+        let mut added_perimeter = 0;
+
+        while next.col <= r_col {
+            if self.plot(next) != plot {
+                span_added = false;
+                added_perimeter += 1;
+            } else if !span_added && self.plot_region_ids.cell_is_unmapped(next) {
+                to_search.push(next);
+                span_added = true;
+            }
+
+            next.col += 1;
+        }
+
+        added_perimeter
     }
 
     fn floodfill_solve(&mut self) -> u64 {
@@ -212,6 +266,7 @@ impl Pos {
         }
     }
 
+    #[allow(dead_code)]
     fn nn(self) -> Self {
         Self {
             row: self.row - 1,
@@ -219,6 +274,7 @@ impl Pos {
         }
     }
 
+    #[allow(dead_code)]
     fn ee(self) -> Self {
         Self {
             row: self.row,
@@ -226,6 +282,7 @@ impl Pos {
         }
     }
 
+    #[allow(dead_code)]
     fn ss(self) -> Self {
         Self {
             row: self.row + 1,
@@ -233,6 +290,7 @@ impl Pos {
         }
     }
 
+    #[allow(dead_code)]
     fn ww(self) -> Self {
         Self {
             row: self.row,
