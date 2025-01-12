@@ -53,8 +53,12 @@ pub(crate) fn get_input(day_i: u32) -> Result<String> {
     }
 }
 
-pub(crate) fn get_test_input(day_i: u32) -> Result<String> {
-    let test_input_path = PUZZLE_INPUTS_DIR.join(format!("day{day_i}-test"));
+fn test_input_path(day_i: u32, input_i: u32) -> PathBuf {
+    PUZZLE_INPUTS_DIR.join(format!("day{day_i}-test{input_i}"))
+}
+
+pub(crate) fn get_test_input(day_i: u32, input_i: u32) -> Result<String> {
+    let test_input_path = test_input_path(day_i, input_i);
 
     fs::read_to_string(&test_input_path).with_context(|| {
         format!(
@@ -64,7 +68,7 @@ pub(crate) fn get_test_input(day_i: u32) -> Result<String> {
     })
 }
 
-pub(crate) fn set_test_input(day_i: u32) -> Result<()> {
+pub(crate) fn set_test_input(day_i: u32, input_i: u32) -> Result<()> {
     create_inputs_dir()?;
 
     println!("Enter test input below, press ^D when done");
@@ -74,7 +78,7 @@ pub(crate) fn set_test_input(day_i: u32) -> Result<()> {
         .read_to_end(&mut test_input)
         .with_context(|| "failed to read test input")?;
 
-    let test_input_path = PUZZLE_INPUTS_DIR.join(format!("day{day_i}-test"));
+    let test_input_path = test_input_path(day_i, input_i);
     fs::write(&test_input_path, test_input).with_context(|| {
         format!(
             "failed to write puzzle test input to file: {}",
