@@ -256,11 +256,11 @@ impl<'input> Map<'input> {
             self.mapped_plots[pos] = true;
             area += 1;
 
+            // West
+
             if self.pos_on_west_edge(pos) {
-                self.floodfill_scan_edge_bulk_orthogonal(
-                    plot,
-                    pos,
-                    Direction::West,
+                self.floodfill_bulk_orthogonal_scan_map_edge(
+                    (plot, pos, Direction::West),
                     &mut area,
                     &mut sides,
                     to_search,
@@ -272,10 +272,8 @@ impl<'input> Map<'input> {
                         to_search.push(next);
                     }
                 } else {
-                    self.floodfill_scan_edge_bulk_orthogonal(
-                        plot,
-                        pos,
-                        Direction::West,
+                    self.floodfill_bulk_orthogonal_scan_plot_edge(
+                        (plot, pos, Direction::West),
                         &mut area,
                         &mut sides,
                         to_search,
@@ -283,11 +281,11 @@ impl<'input> Map<'input> {
                 }
             }
 
+            // East
+
             if self.pos_on_east_edge(pos) {
-                self.floodfill_scan_edge_bulk_orthogonal(
-                    plot,
-                    pos,
-                    Direction::East,
+                self.floodfill_bulk_orthogonal_scan_map_edge(
+                    (plot, pos, Direction::East),
                     &mut area,
                     &mut sides,
                     to_search,
@@ -299,10 +297,8 @@ impl<'input> Map<'input> {
                         to_search.push(next);
                     }
                 } else {
-                    self.floodfill_scan_edge_bulk_orthogonal(
-                        plot,
-                        pos,
-                        Direction::East,
+                    self.floodfill_bulk_orthogonal_scan_plot_edge(
+                        (plot, pos, Direction::East),
                         &mut area,
                         &mut sides,
                         to_search,
@@ -310,11 +306,11 @@ impl<'input> Map<'input> {
                 }
             }
 
+            // North
+
             if self.pos_on_north_edge(pos) {
-                self.floodfill_scan_edge_bulk_orthogonal(
-                    plot,
-                    pos,
-                    Direction::North,
+                self.floodfill_bulk_orthogonal_scan_map_edge(
+                    (plot, pos, Direction::North),
                     &mut area,
                     &mut sides,
                     to_search,
@@ -326,10 +322,8 @@ impl<'input> Map<'input> {
                         to_search.push(next);
                     }
                 } else {
-                    self.floodfill_scan_edge_bulk_orthogonal(
-                        plot,
-                        pos,
-                        Direction::North,
+                    self.floodfill_bulk_orthogonal_scan_plot_edge(
+                        (plot, pos, Direction::North),
                         &mut area,
                         &mut sides,
                         to_search,
@@ -337,11 +331,11 @@ impl<'input> Map<'input> {
                 }
             }
 
+            // South
+
             if self.pos_on_south_edge(pos) {
-                self.floodfill_scan_edge_bulk_orthogonal(
-                    plot,
-                    pos,
-                    Direction::South,
+                self.floodfill_bulk_orthogonal_scan_map_edge(
+                    (plot, pos, Direction::South),
                     &mut area,
                     &mut sides,
                     to_search,
@@ -353,10 +347,8 @@ impl<'input> Map<'input> {
                         to_search.push(next);
                     }
                 } else {
-                    self.floodfill_scan_edge_bulk_orthogonal(
-                        plot,
-                        pos,
-                        Direction::South,
+                    self.floodfill_bulk_orthogonal_scan_plot_edge(
+                        (plot, pos, Direction::South),
                         &mut area,
                         &mut sides,
                         to_search,
@@ -374,79 +366,125 @@ impl<'input> Map<'input> {
         area * sides
     }
 
-    fn floodfill_scan_edge_bulk_orthogonal(
+    fn floodfill_bulk_orthogonal_scan_map_edge(
         &mut self,
-        plot: u8,
-        pos: Pos,
-        direction: Direction,
+        (plot, pos, direction): (u8, Pos, Direction),
         area: &mut u64,
         sides: &mut u64,
         to_search: &mut Vec<Pos>,
     ) {
         *sides += 1;
+        let mut probe;
 
-        if !self.pos_on_orthogonal1_edge(pos, direction) {
-            let mut next = pos;
-            loop {
-                next = next.move_in_orthogonal1(direction);
-                if self.mapped_plots[next] || self.plot(next) != plot {
-                    break;
-                }
-                self.mapped_plots[next] = true;
-                *area += 1;
-                to_search.push(next);
-                if self.pos_on_orthogonal1_edge(next, direction) {
-                    self.floodfill_scan_edge_bulk_orthogonal(
-                        plot,
-                        next,
-                        direction.to_orthogonal1(),
-                        area,
-                        sides,
-                        to_search,
-                    );
-                    break;
-                }
+        probe = pos;
+
+        loop {
+            if self.pos_on_orthogonal1_edge(probe, direction) {
+                break;
+            }
+
+            probe = probe.move_in_orthogonal1(direction);
+
+            if self.mapped_plots[probe] || self.plot(probe) != plot {
+                break;
+            }
+
+            self.mapped_plots[probe] = true;
+            *area += 1;
+
+            let behind = probe.move_opposite_of(direction);
+            if self.plot(behind) == plot {
+                to_search.push(behind);
             }
         }
 
-        if !self.pos_on_orthogonal2_edge(pos, direction) {
-            let mut next = pos;
-            loop {
-                next = next.move_in_orthogonal2(direction);
-                if self.mapped_plots[next] || self.plot(next) != plot {
-                    break;
-                }
-                self.mapped_plots[next] = true;
-                *area += 1;
-                to_search.push(next);
-                if self.pos_on_orthogonal2_edge(next, direction) {
-                    self.floodfill_scan_edge_bulk_orthogonal(
-                        plot,
-                        next,
-                        direction.to_orthogonal2(),
-                        area,
-                        sides,
-                        to_search,
-                    );
-                    break;
-                }
+        probe = pos;
+
+        loop {
+            if self.pos_on_orthogonal2_edge(probe, direction) {
+                break;
+            }
+
+            probe = probe.move_in_orthogonal2(direction);
+
+            if self.mapped_plots[probe] || self.plot(probe) != plot {
+                break;
+            }
+
+            self.mapped_plots[probe] = true;
+            *area += 1;
+
+            let behind = probe.move_opposite_of(direction);
+            if self.plot(behind) == plot {
+                to_search.push(behind);
             }
         }
     }
 
-    // fn floodfill_scan_bulk_orthogonal(
-    //     &mut self,
-    //     plot: u8,
-    //     pos: Pos,
-    //     direction: Direction,
-    //     sides: &mut u64,
-    // ) {
-    //     *sides += 1;
-    //
-    //     if !self.pos_on_orthogonal1_edge(pos, direction) {
-    //         let mut next = pos;
-    //     }
-    // }
+    fn floodfill_bulk_orthogonal_scan_plot_edge(
+        &mut self,
+        (plot, pos, direction): (u8, Pos, Direction),
+        area: &mut u64,
+        sides: &mut u64,
+        to_search: &mut Vec<Pos>,
+    ) {
+        *sides += 1;
+        let mut probe;
+
+        probe = pos;
+
+        loop {
+            if self.pos_on_orthogonal1_edge(probe, direction) {
+                break;
+            }
+
+            probe = probe.move_in_orthogonal1(direction);
+
+            if self.mapped_plots[probe] || self.plot(probe) != plot {
+                break;
+            }
+
+            self.mapped_plots[probe] = true;
+            *area += 1;
+
+            let ahead = probe.move_in(direction);
+            if self.plot(ahead) == plot {
+                break;
+            }
+
+            let behind = probe.move_opposite_of(direction);
+            if self.plot(behind) == plot {
+                to_search.push(behind);
+            }
+        }
+
+        probe = pos;
+
+        loop {
+            if self.pos_on_orthogonal2_edge(probe, direction) {
+                break;
+            }
+
+            probe = probe.move_in_orthogonal2(direction);
+
+            if self.mapped_plots[probe] || self.plot(probe) != plot {
+                break;
+            }
+
+            self.mapped_plots[probe] = true;
+            *area += 1;
+
+            let ahead = probe.move_in(direction);
+            if self.plot(ahead) == plot {
+                break;
+            }
+
+            let behind = probe.move_opposite_of(direction);
+            if self.plot(behind) == plot {
+                to_search.push(behind);
+            }
+        }
+    }
 
     fn floodfill_solve_bulk(&mut self) -> u64 {
         let mut total_fence_cost = 0_u64;
@@ -486,26 +524,6 @@ enum Direction {
     West,
 }
 
-impl Direction {
-    fn to_orthogonal1(self) -> Self {
-        match self {
-            Self::North => Self::East,
-            Self::East => Self::South,
-            Self::South => Self::West,
-            Self::West => Self::North,
-        }
-    }
-
-    fn to_orthogonal2(self) -> Self {
-        match self {
-            Direction::North => Self::West,
-            Direction::East => Self::North,
-            Direction::South => Self::East,
-            Direction::West => Self::South,
-        }
-    }
-}
-
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
 struct Pos {
     row: u32,
@@ -523,6 +541,24 @@ impl Pos {
         Self {
             row: row as u32,
             col: col as u32,
+        }
+    }
+
+    fn move_in(&self, direction: Direction) -> Self {
+        match direction {
+            Direction::North => self.nn(),
+            Direction::East => self.ee(),
+            Direction::South => self.ss(),
+            Direction::West => self.ww(),
+        }
+    }
+
+    fn move_opposite_of(self, direction: Direction) -> Self {
+        match direction {
+            Direction::North => self.ss(),
+            Direction::East => self.ww(),
+            Direction::South => self.nn(),
+            Direction::West => self.ee(),
         }
     }
 
