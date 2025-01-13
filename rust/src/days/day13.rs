@@ -1,3 +1,5 @@
+use std::fmt;
+
 crate::day_executors! {
     [part1]
     [part2]
@@ -12,6 +14,18 @@ struct ClawMachine {
     a: Button,
     b: Button,
     prize: Prize,
+}
+
+impl fmt::Display for ClawMachine {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (a_x, a_y) = self.a.into();
+        let (b_x, b_y) = self.b.into();
+        let (p_x, p_y) = self.prize.into();
+        write!(
+            f,
+            "[A] (x={a_x}, y={a_y}) | [B] (x={b_x}, y={b_y}) | [Prize] (x={p_x}, y={p_y})"
+        )
+    }
 }
 
 impl ClawMachine {
