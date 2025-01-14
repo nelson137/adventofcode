@@ -71,7 +71,7 @@ impl ClawMachine {
     /// ```
     ///
     /// For the solution to be valid
-    fn solve(&self) -> Option<u32> {
+    fn solve(&self) -> Option<u64> {
         let (a_x, a_y) = self.a.into();
         let (b_x, b_y) = self.b.into();
         let (p_x, p_y) = self.prize.into();
@@ -84,6 +84,33 @@ impl ClawMachine {
             _ => None,
         }
     }
+
+    /// Equations:
+    ///
+    /// ```
+    /// (1) A*a_x + B*b_x = p_x
+    /// (2) A*a_y + B*b_y = p_y
+    /// ```
+    fn solve_v2(&self) -> Option<u64> {
+        let (a_x, a_y) = self.a.into();
+        let (b_x, b_y) = self.b.into();
+
+        let (mut p_x, mut p_y) = self.prize.into();
+        p_x += 10000000000000.;
+        p_y += 10000000000000.;
+
+        let a = (p_x - b_x * p_y / b_y) / (a_x - b_x * a_y / b_y);
+        let b = (p_y - a * a_y) / b_y;
+
+        match (a.to_whole_number(), b.to_whole_number()) {
+            (Some(aw), Some(bw)) => {
+                let solves_x = p_x as u64 == (aw * a_x as u64 + bw * b_x as u64);
+                let solves_y = p_y as u64 == (aw * a_y as u64 + bw * b_y as u64);
+                (solves_x && solves_y).then_some(3 * aw + bw)
+            }
+            _ => None,
+        }
+    }
 }
 
 trait FloatToWholeNumber {
@@ -91,18 +118,18 @@ trait FloatToWholeNumber {
     fn to_whole_number(self) -> Option<Self::Target>;
 }
 
-impl FloatToWholeNumber for f32 {
-    type Target = u32;
+impl FloatToWholeNumber for f64 {
+    type Target = u64;
     #[inline(always)]
     fn to_whole_number(self) -> Option<Self::Target> {
-        const SOLUTION_EPSILON: f32 = 1000. * f32::EPSILON;
+        const SOLUTION_EPSILON: f64 = 2000. * f32::EPSILON as f64;
         let mut f = self.fract();
         if f < SOLUTION_EPSILON {
-            return Some(self as u32);
+            return Some(self as u64);
         }
         f = 1. - f;
         if f < SOLUTION_EPSILON {
-            return Some(self as u32 + 1);
+            return Some(self as u64 + 1);
         }
         None
     }
@@ -111,7 +138,7 @@ impl FloatToWholeNumber for f32 {
 #[derive(Clone, Copy)]
 struct Button(Vec2);
 
-impl From<Button> for (f32, f32) {
+impl From<Button> for (f64, f64) {
     #[inline(always)]
     fn from(val: Button) -> Self {
         val.0.into()
@@ -121,7 +148,7 @@ impl From<Button> for (f32, f32) {
 #[derive(Clone, Copy)]
 struct Prize(Vec2);
 
-impl From<Prize> for (f32, f32) {
+impl From<Prize> for (f64, f64) {
     #[inline(always)]
     fn from(val: Prize) -> Self {
         val.0.into()
@@ -130,23 +157,23 @@ impl From<Prize> for (f32, f32) {
 
 #[derive(Clone, Copy)]
 struct Vec2 {
-    x: f32,
-    y: f32,
+    x: f64,
+    y: f64,
 }
 
 impl Vec2 {
     #[inline(always)]
-    fn new(x: f32, y: f32) -> Self {
+    fn new(x: f64, y: f64) -> Self {
         Self { x, y }
     }
 }
 
 #[inline(always)]
-fn vec2(x: f32, y: f32) -> Vec2 {
+fn vec2(x: f64, y: f64) -> Vec2 {
     Vec2::new(x, y)
 }
 
-impl From<Vec2> for (f32, f32) {
+impl From<Vec2> for (f64, f64) {
     #[inline(always)]
     fn from(val: Vec2) -> Self {
         (val.x, val.y)
@@ -205,30 +232,36 @@ fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let answer = claw_machines
         .iter()
         .filter_map(ClawMachine::solve)
-        .sum::<u32>();
+        .sum::<u64>();
 
     Some(Box::new(answer))
 }
 
 fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    _ = input;
+    let claw_machines = parse(input);
 
-    None
+    let answer = claw_machines
+        .iter()
+        .filter_map(ClawMachine::solve_v2)
+        .sum::<u64>();
+
+    Some(Box::new(answer))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const CASES: &[(Option<u32>, f32)] = &[
+    const CASES: &[(Option<u64>, f64)] = &[
         (Some(0), 0.),
-        (Some(0), 0. + f32::EPSILON),
+        (Some(0), 0. + f64::EPSILON),
         (None, 0.2),
         (None, 0.8),
-        (Some(1), 1. - f32::EPSILON),
+        (Some(1), 1. - f64::EPSILON),
         (Some(1), 1.),
-        (Some(1), 1. + f32::EPSILON),
+        (Some(1), 1. + f64::EPSILON),
         (None, 1.2),
+        (Some(81081073664), 81081073664.),
     ];
 
     #[test]
