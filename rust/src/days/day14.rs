@@ -1,5 +1,12 @@
-use std::{cmp, collections::HashMap, fmt};
+use std::{
+    cmp,
+    collections::HashMap,
+    fmt,
+    io::{self, Read, Write},
+};
 
+use anyhow::Result;
+use crossterm::{cursor, execute, queue, style, terminal};
 use nalgebra::Vector2;
 
 crate::day_executors! {
@@ -9,7 +16,7 @@ crate::day_executors! {
 
 crate::day_visualizers! {
     []
-    []
+    [part2_viz]
 }
 
 struct Map {
@@ -51,6 +58,12 @@ impl Map {
         }
     }
 
+    fn step_rev(&mut self, n: u32) {
+        for robot in &mut self.robots {
+            robot.step_rev(n, self.width, self.height);
+        }
+    }
+
     fn calculate_safety_factor(&self) -> u64 {
         let (mut q1_factor, mut q2_factor, mut q3_factor, mut q4_factor) = (0, 0, 0, 0);
 
@@ -71,6 +84,189 @@ impl Map {
         }
 
         q1_factor * q2_factor * q3_factor * q4_factor
+    }
+
+    fn viz2_find_easter_egg(&mut self) -> Option<u32> {
+        let mut stdout = io::stdout();
+        execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide).unwrap();
+        terminal::enable_raw_mode().unwrap();
+
+        let answer = self._viz2_find_easter_egg_impl(&mut stdout);
+
+        execute!(stdout, terminal::LeaveAlternateScreen, cursor::Show).unwrap();
+        terminal::disable_raw_mode().unwrap();
+
+        answer.unwrap()
+    }
+
+    fn _viz2_find_easter_egg_impl(&mut self, stdout: &mut io::Stdout) -> Result<Option<u32>> {
+        let mut steps = 7344;
+        let mut inbuf = [0, 0, 0, 0];
+        let mut n_read;
+
+        let mut guards = vec![0_u64; (self.width * (self.height + 1) / 2) as usize];
+
+        self.step(steps);
+        self._viz2_ee_draw(stdout, steps, &mut guards)?;
+
+        loop {
+            n_read = io::stdin().read(&mut inbuf)?;
+
+            match (n_read, inbuf[0]) {
+                // Escape | ^C | ^D | q | Q
+                (1, 0x1b | 0x03 | 0x04 | b'q' | b'Q') => break Ok(None),
+                // \r
+                (1, 0x0d) => break Ok(Some(steps)),
+                // Space
+                (1, b' ') => {
+                    steps += 1;
+                    self.step(1);
+                    self._viz2_ee_draw(stdout, steps, &mut guards)?;
+                }
+                // Right Arrow
+                (3, 0x1b) if inbuf[1] == 0x5b && inbuf[2] == 0x43 => {
+                    steps += 1;
+                    self.step(1);
+                    self._viz2_ee_draw(stdout, steps, &mut guards)?;
+                }
+                // n
+                (1, b'n') => {
+                    steps += 100;
+                    self.step(100);
+                    self._viz2_ee_draw(stdout, steps, &mut guards)?;
+                }
+                // N
+                (1, b'N') => {
+                    steps += 1000;
+                    self.step(1000);
+                    self._viz2_ee_draw(stdout, steps, &mut guards)?;
+                }
+                // Backspace
+                (1, 0x7f) => {
+                    if steps > 0 {
+                        steps -= 1;
+                        self.step_rev(1);
+                    }
+                    self._viz2_ee_draw(stdout, steps, &mut guards)?;
+                }
+                // Left Arrow
+                (3, 0x1b) if inbuf[1] == 0x5b && inbuf[2] == 0x44 => {
+                    if steps > 0 {
+                        steps -= 1;
+                        self.step_rev(1);
+                    }
+                    self._viz2_ee_draw(stdout, steps, &mut guards)?;
+                }
+                // b
+                (1, b'b') => {
+                    if steps > 100 {
+                        steps -= 100;
+                        self.step_rev(100);
+                    }
+                    self._viz2_ee_draw(stdout, steps, &mut guards)?;
+                }
+                // B
+                (1, b'B') => {
+                    if steps > 1000 {
+                        steps -= 1000;
+                        self.step_rev(1000);
+                    }
+                    self._viz2_ee_draw(stdout, steps, &mut guards)?;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn _viz2_ee_draw(
+        &mut self,
+        stdout: &mut io::Stdout,
+        steps: u32,
+        robot_map: &mut [u64],
+    ) -> Result<()> {
+        let size = terminal::size()?;
+
+        let move_to_steps = {
+            let steps = steps.to_string();
+            let steps_width = steps.len().min(u16::MAX as usize).max(4);
+            cursor::MoveTo(size.0 - steps_width as u16, 0)
+        };
+        execute!(
+            stdout,
+            move_to_steps,
+            style::Print(steps),
+            terminal::Clear(terminal::ClearType::UntilNewLine)
+        )?;
+
+        const BORDER_TL: char = '╭';
+        const BORDER_TR: char = '╮';
+        const BORDER_BR: char = '╯';
+        const BORDER_BL: char = '╰';
+        const BORDER_VERT: char = '│';
+        const BORDER_HOR: char = '─';
+
+        queue!(stdout, cursor::MoveTo(0, 0), style::Print(BORDER_TL))?;
+        for _ in 0..self.width {
+            queue!(stdout, style::Print(BORDER_HOR))?;
+        }
+        queue!(stdout, style::Print(BORDER_TR))?;
+
+        for _ in 0..(self.height + 1) / 2 {
+            queue!(
+                stdout,
+                cursor::MoveToNextLine(1),
+                style::Print(BORDER_VERT),
+                cursor::MoveRight(self.width as u16),
+                style::Print(BORDER_VERT)
+            )?;
+        }
+
+        queue!(stdout, cursor::MoveToNextLine(1), style::Print(BORDER_BL))?;
+        for _ in 0..self.width {
+            queue!(stdout, style::Print(BORDER_HOR))?;
+        }
+        queue!(stdout, style::Print(BORDER_BR))?;
+
+        const LOWER_FILLED: u64 = u32::MAX as u64;
+        const UPPER_FILLED: u64 = (u32::MAX as u64) << 32;
+        const BOTH_FILLED: u64 = LOWER_FILLED | UPPER_FILLED;
+
+        robot_map.fill(0);
+
+        for robot in &self.robots {
+            let pos = robot.position;
+            let map_y = pos.y / 2;
+            let i = map_y * self.width + pos.x;
+            robot_map[i as usize] |= if pos.y % 2 == 0 {
+                LOWER_FILLED
+            } else {
+                UPPER_FILLED
+            };
+        }
+
+        for (i, cell) in robot_map.iter().copied().enumerate() {
+            let c = if cell == LOWER_FILLED {
+                '▀'
+            } else if cell == UPPER_FILLED {
+                '▄'
+            } else if cell == BOTH_FILLED {
+                '█'
+            } else {
+                ' '
+            };
+            queue!(
+                stdout,
+                cursor::MoveTo(
+                    (i % self.width as usize) as u16 + 1,
+                    (i / self.width as usize) as u16 + 1,
+                ),
+                style::Print(c),
+            )?;
+        }
+
+        stdout.flush()?;
+
+        Ok(())
     }
 }
 
@@ -117,6 +313,15 @@ impl Robot {
 
     fn step(&mut self, n: u32, width: i64, height: i64) {
         self.position += n as i64 * self.velocity;
+        self.fix(width, height);
+    }
+
+    fn step_rev(&mut self, n: u32, width: i64, height: i64) {
+        self.position -= n as i64 * self.velocity;
+        self.fix(width, height);
+    }
+
+    fn fix(&mut self, width: i64, height: i64) {
         self.position.x = ((self.position.x % width) + width) % width;
         self.position.y = ((self.position.y % height) + height) % height;
     }
@@ -138,6 +343,12 @@ fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     _ = input;
 
     None
+}
+
+fn part2_viz(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+    let mut map = Map::parse(input);
+    let steps = map.viz2_find_easter_egg();
+    steps.map(|s| Box::new(s) as Box<dyn std::fmt::Display>)
 }
 
 #[cfg(test)]
