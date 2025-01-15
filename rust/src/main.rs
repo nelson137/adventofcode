@@ -4,7 +4,7 @@ use std::fmt;
 
 use anyhow::{Result, bail};
 use clap::{Args, Parser, Subcommand};
-use crossterm::style::Stylize;
+use crossterm::style::{StyledContent, Stylize};
 
 mod auth;
 mod commit;
@@ -285,20 +285,40 @@ impl CliRunCommand {
         } else {
             input::get_input(self.day.0)?
         };
+
         let result = days::execute_day(self.day.0, self.parts.part1(), self.parts.part2(), input);
 
+        let existing_commits = commit::get_existing_commits(self.day.0)?;
+
+        fn get_commit_status(
+            existing_commit: Option<commit::DayPartCommit>,
+            current_commit: commit::DayPartCommit,
+        ) -> StyledContent<&'static str> {
+            match existing_commit {
+                Some(existing) if current_commit == existing => "  ✔".bold().green(),
+                Some(_) => "  ✗".bold().red(),
+                None => "".stylize(),
+            }
+        }
+
         if let Some(r1) = result.0 {
+            let commit1 = commit::DayPartCommit::new(&r1.answer);
+            let commit_status = get_commit_status(existing_commits.0, commit1);
             println!(
-                "Part 1: {}  {}",
+                "Part 1: {}{}    {}",
                 r1.answer,
+                commit_status,
                 format!("({:?})", r1.duration).dark_grey()
             );
         }
 
         if let Some(r2) = result.1 {
+            let commit2 = commit::DayPartCommit::new(&r2.answer);
+            let commit_status = get_commit_status(existing_commits.1, commit2);
             println!(
-                "Part 2: {}  {}",
+                "Part 2: {}{}    {}",
                 r2.answer,
+                commit_status,
                 format!("({:?})", r2.duration).dark_grey()
             );
         }
