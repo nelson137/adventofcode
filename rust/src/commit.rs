@@ -72,10 +72,10 @@ impl DayPartCommit {
         })
     }
 
-    pub(crate) fn write(&self, day_i: u32, part_i: u32) -> Result<()> {
+    pub(crate) fn write(&self, day_i: u32, part: crate::Part) -> Result<()> {
         create_answers_dir()?;
 
-        let path = PUZZLE_ANSWERS_DIR.join(format!("day{day_i}.{part_i}"));
+        let path = PUZZLE_ANSWERS_DIR.join(format!("day{day_i}.{}", part.number()));
         let commit = self.to_string();
 
         fs::write(&path, commit)

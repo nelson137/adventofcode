@@ -1,5 +1,7 @@
 #![feature(iter_map_windows)]
 
+use std::fmt;
+
 use anyhow::{Result, bail};
 use clap::{Args, Parser, Subcommand};
 use crossterm::style::Stylize;
@@ -141,14 +143,18 @@ impl CliCommitCommand {
             let commit1 = commit::DayPartCommit::new(&result1.answer);
             match existing_commits.0 {
                 Some(existing1) if commit1 == existing1 => {
-                    self.print_already_committed(1, &commit1.answer);
+                    self.print_already_committed(Part::Part1, &commit1.answer);
                 }
                 Some(existing1) if !self.force => {
-                    self.print_incorrect_answer_diff(1, &existing1.answer, &commit1.answer);
+                    self.print_incorrect_answer_diff(
+                        Part::Part1,
+                        &existing1.answer,
+                        &commit1.answer,
+                    );
                 }
                 _ => {
-                    commit1.write(self.day.0, 1)?;
-                    self.print_committed(1, &commit1.answer);
+                    commit1.write(self.day.0, Part::Part1)?;
+                    self.print_committed(Part::Part1, &commit1.answer);
                 }
             }
         }
@@ -157,14 +163,18 @@ impl CliCommitCommand {
             let commit2 = commit::DayPartCommit::new(&result2.answer);
             match existing_commits.1 {
                 Some(existing2) if commit2 == existing2 => {
-                    self.print_already_committed(2, &commit2.answer);
+                    self.print_already_committed(Part::Part2, &commit2.answer);
                 }
                 Some(existing2) if !self.force => {
-                    self.print_incorrect_answer_diff(2, &existing2.answer, &commit2.answer);
+                    self.print_incorrect_answer_diff(
+                        Part::Part2,
+                        &existing2.answer,
+                        &commit2.answer,
+                    );
                 }
                 _ => {
-                    commit2.write(self.day.0, 2)?;
-                    self.print_committed(2, &commit2.answer);
+                    commit2.write(self.day.0, Part::Part2)?;
+                    self.print_committed(Part::Part2, &commit2.answer);
                 }
             }
         }
@@ -172,29 +182,30 @@ impl CliCommitCommand {
         Ok(())
     }
 
-    fn print_committed(&self, part_i: u32, answer: &str) {
+    fn print_committed(&self, part: Part, answer: &str) {
         println!(
-            "Part {}: {}  {}    {}",
-            part_i,
+            "{}: {}  {}    {}",
+            part,
             answer.trim(),
             "✓".bold().green(),
             "(committed)".dark_grey()
         );
     }
 
-    fn print_already_committed(&self, part_i: u32, answer: &str) {
+    fn print_already_committed(&self, part: Part, answer: &str) {
         println!(
-            "Part {}: {}  {}    {}",
-            part_i,
+            "{}: {}  {}    {}",
+            part,
             answer.trim(),
             "✓".bold().green(),
             "(already committed)".dark_grey()
         );
     }
 
-    fn print_incorrect_answer_diff(&self, part_i: u32, commit_answer: &str, current_answer: &str) {
+    fn print_incorrect_answer_diff(&self, part: Part, commit_answer: &str, current_answer: &str) {
         eprintln!(
-            "{}: part {part_i} answer does not match existing commit",
+            "{}: {} answer does not match existing commit",
+            part,
             "error".bold().red(),
         );
         eprintln!();
@@ -390,5 +401,24 @@ impl clap::builder::TypedValueParser for DayParser {
         let day = possible_day_values.parse_ref(cmd, arg, value)?;
         let n = day[3..].parse().unwrap();
         Ok(Day(n))
+    }
+}
+
+#[derive(Clone, Copy)]
+#[repr(u8)]
+enum Part {
+    Part1 = 1,
+    Part2 = 2,
+}
+
+impl Part {
+    fn number(self) -> u8 {
+        self as u8
+    }
+}
+
+impl fmt::Display for Part {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Part {}", self.number())
     }
 }
