@@ -86,6 +86,58 @@ impl Map {
         q1_factor * q2_factor * q3_factor * q4_factor
     }
 
+    fn find_easter_egg(&mut self) -> u32 {
+        let mut robot_positions =
+            vec![Vec::<u64>::with_capacity(self.robots.len() / 4); self.height as usize];
+
+        fn has_contiguous_run(n: u32, values: &mut [u64]) -> bool {
+            if values.len() < n as usize {
+                return false;
+            }
+
+            values.sort();
+
+            let mut run_x = values[0];
+            let mut run_size = 1_u32;
+
+            for &x in &values[1..] {
+                if x == run_x + 1 {
+                    run_size += 1;
+                    if run_size >= n {
+                        return true;
+                    }
+                } else {
+                    run_size = 1;
+                }
+                run_x = x;
+            }
+
+            false
+        }
+
+        let mut steps = 0_u32;
+
+        'find: loop {
+            for robot in &self.robots {
+                robot_positions[robot.position.y as usize].push(robot.position.x as u64);
+            }
+
+            for positions in &mut robot_positions {
+                if has_contiguous_run(31, positions) {
+                    break 'find;
+                }
+            }
+
+            steps += 1;
+            self.step(1);
+            for positions in &mut robot_positions {
+                positions.clear();
+            }
+        }
+
+        steps
+    }
+
     fn viz2_find_easter_egg(&mut self) -> Option<u32> {
         let mut stdout = io::stdout();
         execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide).unwrap();
@@ -340,9 +392,15 @@ fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 }
 
 fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    _ = input;
+    let mut map = Map::parse(input);
 
-    None
+    let steps = map.find_easter_egg();
+
+    // NOTE: The conditions for this solution (31 contiguous robots in a row)
+    //       was found with the part 2 visualizer.
+    assert_eq!(7344, steps);
+
+    Some(Box::new(steps))
 }
 
 fn part2_viz(input: &str) -> Option<Box<dyn std::fmt::Display>> {
