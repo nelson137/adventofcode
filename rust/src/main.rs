@@ -134,61 +134,78 @@ impl CliCommitCommand {
         let input = input::get_input(self.day.0)?;
 
         let result = days::execute_day(self.day.0, true, true, input);
-        let (Some(result1), Some(result2)) = (result.0, result.1) else {
-            bail!("days can only be committed when both parts are solved");
-        };
 
-        let existing_commit = commit::get_existing_commit(self.day.0)?;
-        let commit = commit::DayCommit::new(&result1.answer, &result2.answer);
+        let existing_commits = commit::get_existing_commits(self.day.0)?;
 
-        if let Some(existing_commit) = existing_commit {
-            if commit == existing_commit {
-                println!("Day {} is already commited", self.day.0);
-                println!("Answers match");
-            } else if self.force {
-                println!(
-                    "Part 1: {}  {}",
-                    commit.part1.answer.trim(),
-                    format!("({:?})", result1.duration).dark_grey(),
-                );
-                println!(
-                    "Part 2: {}  {}",
-                    commit.part2.answer.trim(),
-                    format!("({:?})", result2.duration).dark_grey(),
-                );
-                commit::write_day_answers(self.day.0, &commit)?;
-            } else {
-                eprintln!(
-                    "Day {} is already committed but the answers do not match",
-                    self.day.0
-                );
-                eprintln!("Use `--force` to overwrite");
-                if commit.part1 != existing_commit.part1 {
-                    eprintln!();
-                    eprintln!("Part 1:");
-                    eprintln!("<<<<<<< commited answer");
-                    eprintln!("{}", existing_commit.part1.answer.trim());
-                    eprintln!("=======");
-                    eprintln!("{}", commit.part1.answer.trim());
-                    eprintln!(">>>>>>> current run answer");
+        if let Some(result1) = result.0 {
+            let commit1 = commit::DayPartCommit::new(&result1.answer);
+            match existing_commits.0 {
+                Some(existing1) if commit1 == existing1 => {
+                    self.print_already_committed(1, &commit1.answer);
                 }
-                if commit.part2 != existing_commit.part2 {
-                    eprintln!();
-                    eprintln!("Part 2:");
-                    eprintln!("<<<<<<< commited answer");
-                    eprintln!("{}", existing_commit.part2.answer.trim());
-                    eprintln!("=======");
-                    eprintln!("{}", commit.part2.answer.trim());
-                    eprintln!(">>>>>>> current run answer");
+                Some(existing1) if !self.force => {
+                    self.print_incorrect_answer_diff(1, &existing1.answer, &commit1.answer);
+                }
+                _ => {
+                    commit1.write(self.day.0, 1)?;
+                    self.print_committed(1, &commit1.answer);
                 }
             }
-        } else {
-            println!("Part 1: {}", commit.part1.answer.trim());
-            println!("Part 2: {}", commit.part2.answer.trim());
-            commit::write_day_answers(self.day.0, &commit)?;
+        }
+
+        if let Some(result2) = result.1 {
+            let commit2 = commit::DayPartCommit::new(&result2.answer);
+            match existing_commits.1 {
+                Some(existing2) if commit2 == existing2 => {
+                    self.print_already_committed(2, &commit2.answer);
+                }
+                Some(existing2) if !self.force => {
+                    self.print_incorrect_answer_diff(2, &existing2.answer, &commit2.answer);
+                }
+                _ => {
+                    commit2.write(self.day.0, 2)?;
+                    self.print_committed(2, &commit2.answer);
+                }
+            }
         }
 
         Ok(())
+    }
+
+    fn print_committed(&self, part_i: u32, answer: &str) {
+        println!(
+            "Part {}: {}  {}    {}",
+            part_i,
+            answer.trim(),
+            "✓".bold().green(),
+            "(committed)".dark_grey()
+        );
+    }
+
+    fn print_already_committed(&self, part_i: u32, answer: &str) {
+        println!(
+            "Part {}: {}  {}    {}",
+            part_i,
+            answer.trim(),
+            "✓".bold().green(),
+            "(already committed)".dark_grey()
+        );
+    }
+
+    fn print_incorrect_answer_diff(&self, part_i: u32, commit_answer: &str, current_answer: &str) {
+        eprintln!(
+            "{}: part {part_i} answer does not match existing commit",
+            "error".bold().red(),
+        );
+        eprintln!();
+        eprintln!("<<<<<<< commited answer");
+        eprintln!("{}", commit_answer.trim());
+        eprintln!("=======");
+        eprintln!("{}", current_answer.trim());
+        eprintln!(">>>>>>> current run answer");
+        eprintln!();
+        eprintln!("Use `--force` to overwrite");
+        eprintln!();
     }
 }
 

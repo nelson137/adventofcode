@@ -103,13 +103,13 @@ pub(crate) fn bench_day(
 ) -> Result<()> {
     let day_executors = DAY_EXECUTORS[(day_i - 1) as usize];
 
-    let commit = crate::commit::get_existing_commit(day_i)?;
+    let (commit1, commit2) = crate::commit::get_existing_commits(day_i)?;
 
     if part1 {
         let mut group = c.benchmark_group(format!("Day{day_i}-Pt1"));
         for &(name, run) in day_executors.0 {
-            if let (Some(c), Some(answer)) = (&commit, run(&input)) {
-                if crate::commit::DayPartCommit::new(&answer) != c.part2 {
+            if let (Some(c), Some(answer)) = (&commit1, run(&input)) {
+                if crate::commit::DayPartCommit::new(&answer) != *c {
                     bail!("incorrect bench impl :(");
                 }
             }
@@ -121,8 +121,8 @@ pub(crate) fn bench_day(
     if part2 {
         let mut group = c.benchmark_group(format!("Day{day_i}-Pt2"));
         for &(name, run) in day_executors.1 {
-            if let (Some(c), Some(answer)) = (&commit, run(&input)) {
-                if crate::commit::DayPartCommit::new(&answer) != c.part2 {
+            if let (Some(c), Some(answer)) = (&commit2, run(&input)) {
+                if crate::commit::DayPartCommit::new(&answer) != *c {
                     bail!("incorrect bench impl :(");
                 }
             }
