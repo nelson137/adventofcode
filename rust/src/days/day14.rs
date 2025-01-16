@@ -88,14 +88,14 @@ impl Map {
 
     fn find_easter_egg(&mut self) -> u32 {
         let mut robot_positions =
-            vec![Vec::<u64>::with_capacity(self.robots.len() / 4); self.height as usize];
+            vec![Vec::<u8>::with_capacity(self.robots.len() / 4); self.height as usize];
 
-        fn has_contiguous_run(n: u32, values: &mut [u64]) -> bool {
+        fn has_contiguous_run(n: u32, values: &mut [u8]) -> bool {
             if values.len() < n as usize {
                 return false;
             }
 
-            values.sort();
+            values.sort_unstable();
 
             let mut run_x = values[0];
             let mut run_size = 1_u32;
@@ -119,7 +119,7 @@ impl Map {
 
         'find: loop {
             for robot in &self.robots {
-                robot_positions[robot.position.y as usize].push(robot.position.x as u64);
+                robot_positions[robot.position.y as usize].push(robot.position.x as u8);
             }
 
             for positions in &mut robot_positions {
