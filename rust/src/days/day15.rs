@@ -118,15 +118,15 @@ struct Pos {
 
 impl fmt::Debug for Pos {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[{},{}]", self.y, self.x)
+        write!(f, "[{},{}]", self.x, self.y)
     }
 }
 
 impl Pos {
-    fn new(row: usize, col: usize) -> Self {
+    fn new(x: usize, y: usize) -> Self {
         Self {
-            y: row as u32,
-            x: col as u32,
+            y: y as u32,
+            x: x as u32,
         }
     }
 
