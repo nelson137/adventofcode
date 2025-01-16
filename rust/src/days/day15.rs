@@ -15,7 +15,7 @@ crate::day_visualizers! {
     []
 }
 
-fn parse(input: &str) -> (Map, Pos) {
+fn parse(input: &str) -> (Map, Vec<Instruction>, Pos) {
     let width = input.lines().next().unwrap().trim().len();
 
     let mut warehouse = Vec::new();
@@ -45,22 +45,17 @@ fn parse(input: &str) -> (Map, Pos) {
         .map(Instruction::from)
         .collect::<Vec<_>>();
 
-    (Map::new(width, warehouse, robot_instructions), robot)
+    (Map::new(width, warehouse), robot_instructions, robot)
 }
 
 struct Map {
     width: usize,
     warehouse: Vec<Cell>,
-    robot_instructions: Vec<Instruction>,
 }
 
 impl Map {
-    fn new(width: usize, warehouse: Vec<Cell>, robot_instructions: Vec<Instruction>) -> Self {
-        Self {
-            width,
-            warehouse,
-            robot_instructions,
-        }
+    fn new(width: usize, warehouse: Vec<Cell>) -> Self {
+        Self { width, warehouse }
     }
 
     #[allow(dead_code)]
@@ -79,8 +74,8 @@ impl Map {
         println!();
     }
 
-    fn run_robot(&mut self, mut robot: Pos) {
-        for ins in self.robot_instructions.iter().copied() {
+    fn run_robot(&mut self, instructions: &[Instruction], mut robot: Pos) {
+        for ins in instructions.iter().copied() {
             let probe_start = robot.move_(ins);
             let mut probe = probe_start;
 
@@ -249,9 +244,9 @@ impl fmt::Display for Cell {
 }
 
 fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    let (mut map, robot) = parse(input);
+    let (mut map, instructions, robot) = parse(input);
 
-    map.run_robot(robot);
+    map.run_robot(&instructions, robot);
 
     let answer = map.sum_box_coords();
 
