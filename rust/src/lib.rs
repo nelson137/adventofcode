@@ -85,6 +85,46 @@ impl hash::Hasher for Murmur3MixHash64 {
     }
 }
 
+pub fn sort_radix8(values: &mut [u8]) {
+    if values.is_empty() {
+        return;
+    }
+    const BITS: u8 = 8;
+    let bin_mask = 1_u8 << (BITS - 1);
+    sort_radix8_impl(values, bin_mask);
+}
+
+fn sort_radix8_impl(values: &mut [u8], bin_mask: u8) {
+    let mut i_0bin_end = 0;
+    let mut i_1bin_start = values.len();
+
+    loop {
+        if values[i_0bin_end] & bin_mask == 0 {
+            i_0bin_end += 1;
+        } else {
+            i_1bin_start -= 1;
+            values.swap(i_0bin_end, i_1bin_start);
+        }
+
+        if i_0bin_end == i_1bin_start {
+            break;
+        }
+    }
+
+    let next_bin_mask = bin_mask >> 1;
+    if next_bin_mask == 0 {
+        return;
+    }
+
+    if i_0bin_end > 0 {
+        sort_radix8_impl(&mut values[..i_0bin_end], next_bin_mask);
+    }
+
+    if i_1bin_start < values.len() - 1 {
+        sort_radix8_impl(&mut values[i_1bin_start..], next_bin_mask);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[rustfmt::skip]
@@ -145,5 +185,49 @@ mod tests {
         for &(expected, x) in COUNT_DIGIT_CASES {
             assert_eq!(expected, super::_count_digits_fast(x));
         }
+    }
+
+    #[test]
+    fn radix8_sort_1() {
+        let mut values = [];
+
+        super::sort_radix8(&mut values);
+
+        assert_eq!([] as [u8; 0], values);
+    }
+
+    #[test]
+    fn radix8_sort_2() {
+        let mut values = [42];
+        let expected = values;
+
+        super::sort_radix8(&mut values);
+
+        assert_eq!(expected, values);
+    }
+
+    #[test]
+    fn radix8_sort_3() {
+        let mut values = [0, 0, 1, 0, 1, 1, 1, 0];
+
+        let mut expected = values;
+        expected.sort();
+
+        super::sort_radix8(&mut values);
+
+        assert_eq!(expected, values);
+    }
+
+    #[test]
+    fn radix8_sort_4() {
+        let mut values: [_; 8] = std::array::from_fn(|_| rand::random());
+        println!("{values:?}");
+
+        let mut expected = values;
+        expected.sort();
+
+        super::sort_radix8(&mut values);
+
+        assert_eq!(expected, values);
     }
 }
