@@ -290,20 +290,9 @@ impl CliRunCommand {
 
         let existing_commits = commit::get_existing_commits(self.day.0)?;
 
-        fn get_commit_status(
-            existing_commit: Option<commit::DayPartCommit>,
-            current_commit: commit::DayPartCommit,
-        ) -> StyledContent<&'static str> {
-            match existing_commit {
-                Some(existing) if current_commit == existing => "  ✔".bold().green(),
-                Some(_) => "  ✗".bold().red(),
-                None => "".stylize(),
-            }
-        }
-
         if let Some(r1) = result.0 {
             let commit1 = commit::DayPartCommit::new(&r1.answer);
-            let commit_status = get_commit_status(existing_commits.0, commit1);
+            let commit_status = self.get_commit_status(existing_commits.0, commit1);
             println!(
                 "Part 1: {}{}    {}",
                 r1.answer,
@@ -314,7 +303,7 @@ impl CliRunCommand {
 
         if let Some(r2) = result.1 {
             let commit2 = commit::DayPartCommit::new(&r2.answer);
-            let commit_status = get_commit_status(existing_commits.1, commit2);
+            let commit_status = self.get_commit_status(existing_commits.1, commit2);
             println!(
                 "Part 2: {}{}    {}",
                 r2.answer,
@@ -324,6 +313,21 @@ impl CliRunCommand {
         }
 
         Ok(())
+    }
+
+    fn get_commit_status(
+        &self,
+        existing_commit: Option<commit::DayPartCommit>,
+        current_commit: commit::DayPartCommit,
+    ) -> StyledContent<&'static str> {
+        if self.test.is_some() {
+            return "".stylize();
+        }
+        match existing_commit {
+            Some(existing) if current_commit == existing => "  ✔".bold().green(),
+            Some(_) => "  ✗".bold().red(),
+            None => "".stylize(),
+        }
     }
 }
 
