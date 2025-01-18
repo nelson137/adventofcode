@@ -178,24 +178,33 @@ impl Map {
     }
 
     fn run_robot_wide(&mut self, instructions: &[Instruction], mut robot: Pos) {
+        let mut pushtree_gen = Vec::<Pos>::new();
+        let mut pushtree_next_gen = Vec::<Pos>::new();
+        let mut pushtree_swap_stack = Vec::<(Pos, Pos)>::new();
+
         for ins in instructions.iter().copied() {
             let probe = robot.move_(ins);
             match self[probe] {
                 Cell::Wall => {}
                 Cell::Empty => robot = probe,
                 Cell::Box(boxt) => {
-                    if let Some(next) = self.move_boxes_wide(probe, ins, boxt) {
+                    if let Some(next) = match ins {
+                        Instruction::East | Instruction::West => {
+                            self.move_boxes_wide_ew(probe, ins)
+                        }
+                        Instruction::North | Instruction::South => self.move_boxes_wide_ns(
+                            probe,
+                            ins,
+                            boxt,
+                            &mut pushtree_gen,
+                            &mut pushtree_next_gen,
+                            &mut pushtree_swap_stack,
+                        ),
+                    } {
                         robot = next;
                     }
                 }
             }
-        }
-    }
-
-    fn move_boxes_wide(&mut self, pos: Pos, ins: Instruction, boxt: BoxType) -> Option<Pos> {
-        match ins {
-            Instruction::East | Instruction::West => self.move_boxes_wide_ew(pos, ins),
-            Instruction::North | Instruction::South => self.move_boxes_wide_ns(pos, ins, boxt),
         }
     }
 
@@ -224,16 +233,25 @@ impl Map {
     }
 
     #[inline(always)]
-    fn move_boxes_wide_ns(&mut self, pos: Pos, ins: Instruction, boxt: BoxType) -> Option<Pos> {
+    fn move_boxes_wide_ns(
+        &mut self,
+        pos: Pos,
+        ins: Instruction,
+        boxt: BoxType,
+        pushtree_gen: &mut Vec<Pos>,
+        pushtree_next_gen: &mut Vec<Pos>,
+        pushtree_swap_stack: &mut Vec<(Pos, Pos)>,
+    ) -> Option<Pos> {
         let seed = if boxt == BoxType::Right {
             pos.ww()
         } else {
             pos
         };
 
-        let mut pushtree_gen = vec![seed];
-        let mut pushtree_next_gen = vec![];
-        let mut pushtree_swap_stack = Vec::<(Pos, Pos)>::new();
+        pushtree_gen.clear();
+        pushtree_next_gen.clear();
+        pushtree_swap_stack.clear();
+        pushtree_gen.push(seed);
 
         while !pushtree_gen.is_empty() {
             for box_pos in pushtree_gen.drain(..) {
@@ -287,7 +305,7 @@ impl Map {
                 }
             }
 
-            std::mem::swap(&mut pushtree_gen, &mut pushtree_next_gen);
+            std::mem::swap(pushtree_gen, pushtree_next_gen);
         }
 
         while let Some((a, b)) = pushtree_swap_stack.pop() {
