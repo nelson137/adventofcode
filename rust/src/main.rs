@@ -340,6 +340,9 @@ struct CliVisualizeCommand {
     #[command(flatten)]
     parts: CliVisualizeCommandPartsGroup,
 
+    #[arg(long, num_args = 0..=1, require_equals = true, default_missing_value = "1")]
+    test: Option<u32>,
+
     #[arg(value_parser = DayParser)]
     day: Day,
 }
@@ -368,7 +371,11 @@ impl CliVisualizeCommand {
             bail!("there is no visualizer for Day {} Part {id}", self.day.0);
         };
 
-        let input = input::get_input(self.day.0)?;
+        let input = if let Some(test_i) = self.test {
+            input::get_test_input(self.day.0, test_i)?
+        } else {
+            input::get_input(self.day.0)?
+        };
 
         if let Some(answer) = visualize(&input) {
             println!("Part {id}: {answer}");
