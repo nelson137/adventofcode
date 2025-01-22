@@ -1,2 +1,5 @@
 bench regex='.*':
     cargo criterion --output-format=quiet --features=bench -- '{{regex}}'
+
+profile *args:
+    cargo flamegraph --root --freq=2991 --profile=dev --output=target/flamegraph.svg -- run {{args}}
