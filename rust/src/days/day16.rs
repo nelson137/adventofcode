@@ -124,12 +124,26 @@ impl Maze<'_> {
                 return Some(current.f_score);
             }
 
-            let mut next = current.forward();
+            let mut next = current;
 
-            if self[next.node.pos] != b'#' {
+            loop {
+                let probe_pos = next.forward_pos();
+                if self[probe_pos] == b'#' {
+                    break;
+                }
+                next.node.pos = probe_pos;
+                next.f_score += 1;
+                if self[probe_pos.orthogonal1_to(current.node.dir)] != b'#'
+                    || self[probe_pos.orthogonal2_to(current.node.dir)] != b'#'
+                {
+                    break;
+                }
+            }
+
+            if next.node.pos != current.node.pos {
                 let tentative_g_score = g_scores
                     .get(&current.node)
-                    .map(|s| s + 1)
+                    .map(|s| s + next.f_score - current.f_score)
                     .unwrap_or(u64::MAX);
                 let next_g_score = *g_scores.get(&next.node).unwrap_or(&u64::MAX);
                 if tentative_g_score < next_g_score {
@@ -293,12 +307,26 @@ impl Maze<'_> {
                 return Some(current.node);
             }
 
-            let mut next = current.forward();
+            let mut next = current;
 
-            if self[next.node.pos] != b'#' {
+            loop {
+                let probe_pos = next.forward_pos();
+                if self[probe_pos] == b'#' {
+                    break;
+                }
+                next.node.pos = probe_pos;
+                next.f_score += 1;
+                if self[probe_pos.orthogonal1_to(current.node.dir)] != b'#'
+                    || self[probe_pos.orthogonal2_to(current.node.dir)] != b'#'
+                {
+                    break;
+                }
+            }
+
+            if next.node.pos != current.node.pos {
                 let tentative_g_score = g_scores
                     .get(&current.node)
-                    .map(|s| s + 1)
+                    .map(|s| s + next.f_score - current.f_score)
                     .unwrap_or(u64::MAX);
                 let next_g_score = *g_scores.get(&next.node).unwrap_or(&u64::MAX);
                 if tentative_g_score < next_g_score {
@@ -355,18 +383,18 @@ impl Maze<'_> {
                 }
             }
 
-            fn g_scores_display(g_scores: &HashMap<Node, u64>) -> String {
-                let mut out = String::new();
-                for (i, (&node, &g)) in g_scores.iter().enumerate() {
-                    if i > 0 {
-                        out.push_str(SEP);
-                    }
-                    out.push_str(&format!("{},{} : {}", node.pos, node.dir, g));
-                }
-                out
-            }
-            _logs.push(format!("{_step:4}| open:   {open_set}"));
-            _logs.push(format!("{_step:4}| gScore: {}", g_scores_display(g_scores)));
+            // fn g_scores_display(g_scores: &HashMap<Node, u64>) -> String {
+            //     let mut out = String::new();
+            //     for (i, (&node, &g)) in g_scores.iter().enumerate() {
+            //         if i > 0 {
+            //             out.push_str(SEP);
+            //         }
+            //         out.push_str(&format!("{},{} : {}", node.pos, node.dir, g));
+            //     }
+            //     out
+            // }
+            // _logs.push(format!("{_step:4}| open:   {open_set}"));
+            // _logs.push(format!("{_step:4}| gScore: {}", g_scores_display(g_scores)));
         }
 
         None
@@ -612,6 +640,16 @@ impl Pos {
             Direction::South => self.ss(),
             Direction::West => self.ww(),
         }
+    }
+
+    #[inline(always)]
+    fn orthogonal1_to(self, dir: Direction) -> Self {
+        self.move_in(dir.rotate_cw())
+    }
+
+    #[inline(always)]
+    fn orthogonal2_to(self, dir: Direction) -> Self {
+        self.move_in(dir.rotate_ccw())
     }
 }
 
