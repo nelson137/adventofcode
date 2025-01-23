@@ -51,6 +51,18 @@ pub(crate) struct DayPartResult {
 
 pub(crate) struct DayPartDuration(Duration);
 
+impl DayPartDuration {
+    pub(crate) fn speed_color(&self) -> style::Color {
+        if self.0 < Duration::from_millis(5) {
+            style::Color::Grey
+        } else if self.0 < Duration::from_millis(50) {
+            style::Color::Yellow
+        } else {
+            style::Color::Red
+        }
+    }
+}
+
 impl fmt::Display for DayPartDuration {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         #[rustfmt::skip]

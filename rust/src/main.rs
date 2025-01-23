@@ -1,10 +1,10 @@
 #![feature(iter_map_windows)]
 
-use std::fmt;
+use std::{fmt, iter};
 
 use anyhow::{Result, bail};
 use clap::{Args, Parser, Subcommand};
-use crossterm::style::{StyledContent, Stylize};
+use crossterm::style::{self, StyledContent, Stylize};
 
 mod auth;
 mod commit;
@@ -274,47 +274,60 @@ struct CliRunCommand {
     #[arg(long, num_args = 0..=1, require_equals = true, default_missing_value = "1")]
     test: Option<u32>,
 
-    #[arg(value_parser = DayParser)]
-    day: Day,
+    #[arg(name = "day", value_parser = CliRunDaySpecParser)]
+    day_spec: CliRunDaySpec,
 }
 
 impl CliRunCommand {
     fn run(self) -> Result<()> {
+        match self.day_spec {
+            CliRunDaySpec::All => self.run_all(),
+            CliRunDaySpec::Day(day) => self.run_one(day),
+        }
+    }
+
+    fn run_one(self, day: Day) -> Result<()> {
         let input = if let Some(test_i) = self.test {
-            input::get_test_input(self.day.0, test_i)?
+            input::get_test_input(day.0, test_i)?
         } else {
-            input::get_input(self.day.0)?
+            input::get_input(day.0)?
         };
 
-        let result = days::execute_day(self.day.0, self.parts.part1(), self.parts.part2(), input);
+        let result = days::execute_day(day.0, self.parts.part1(), self.parts.part2(), input);
 
-        let existing_commits = commit::get_existing_commits(self.day.0)?;
+        let existing_commits = commit::get_existing_commits(day.0)?;
 
         if let Some(r1) = result.0 {
             let commit1 = commit::DayPartCommit::new(&r1.answer);
-            let commit_status = self.get_commit_status(existing_commits.0, commit1);
+            let commit_status =
+                self.get_single_day_commit_status(existing_commits.0.as_ref(), &commit1);
             println!(
-                "Part 1: {}{}    {:#}",
-                r1.answer, commit_status, r1.duration
+                "Part 1: {answer}{status}    {duration:#}",
+                answer = r1.answer,
+                status = commit_status,
+                duration = r1.duration,
             );
         }
 
         if let Some(r2) = result.1 {
             let commit2 = commit::DayPartCommit::new(&r2.answer);
-            let commit_status = self.get_commit_status(existing_commits.1, commit2);
+            let commit_status =
+                self.get_single_day_commit_status(existing_commits.1.as_ref(), &commit2);
             println!(
-                "Part 2: {}{}    {:#}",
-                r2.answer, commit_status, r2.duration
+                "Part 2: {answer}{status}    {duration:#}",
+                answer = r2.answer,
+                status = commit_status,
+                duration = r2.duration,
             );
         }
 
         Ok(())
     }
 
-    fn get_commit_status(
+    fn get_single_day_commit_status(
         &self,
-        existing_commit: Option<commit::DayPartCommit>,
-        current_commit: commit::DayPartCommit,
+        existing_commit: Option<&commit::DayPartCommit>,
+        current_commit: &commit::DayPartCommit,
     ) -> StyledContent<&'static str> {
         if self.test.is_some() {
             return "".stylize();
@@ -323,6 +336,106 @@ impl CliRunCommand {
             Some(existing) if current_commit == existing => "  ✔".bold().green(),
             Some(_) => "  ✗".bold().red(),
             None => "".stylize(),
+        }
+    }
+
+    fn run_all(self) -> Result<()> {
+        if self.test.is_some() {
+            eprintln!("Warning: ignoring `--test` option, it does nothing with `run all`");
+        }
+
+        const GUTTER_WIDTH: usize = 4;
+        const PADDING_WIDTH: usize = 4;
+        const STATUS_WIDTH: usize = 3;
+        const DURATION_WIDTH: usize = 8;
+        const PART_WIDTH: usize = STATUS_WIDTH + DURATION_WIDTH;
+
+        let results = (1_u32..=25)
+            .map(
+                |day_i| -> Result<(u32, commit::DayCommits, days::DayResult)> {
+                    let commits = commit::get_existing_commits(day_i)?;
+                    if day_i as usize <= days::CLI_DAY_VALUES.len() {
+                        let input = input::get_input(day_i)?;
+                        let result = days::execute_day(day_i, true, true, input);
+                        Ok((day_i, commits, result))
+                    } else {
+                        Ok((day_i, commits, days::DayResult(None, None)))
+                    }
+                },
+            )
+            .collect::<Result<Vec<_>>>()?;
+
+        println!(
+            "{spacer:gutter_w$} {spacer:padding_w$}{p1}{spacer:padding_w$}{p2}",
+            spacer = "",
+            gutter_w = GUTTER_WIDTH,
+            padding_w = PADDING_WIDTH,
+            p1 = format!("{:w$}", "Pt. 1", w = PART_WIDTH).grey(),
+            p2 = format!("{:w$}", "Pt. 2", w = PART_WIDTH).grey(),
+        );
+
+        println!(
+            "{gutter}{divider}{padding}{part}{padding}{part}{tail}",
+            gutter = "─".repeat(GUTTER_WIDTH).dark_grey(),
+            divider = "┬".dark_grey(),
+            padding = "─".repeat(PADDING_WIDTH).dark_grey(),
+            part = "─".repeat(PART_WIDTH).dark_grey(),
+            tail = "─".repeat(PADDING_WIDTH).dark_grey(),
+        );
+
+        for (day_i, day_commits, day_result) in results {
+            print!(
+                " {day_label} {divider}",
+                day_label = format!("{day_i:2}").grey(),
+                divider = "│".dark_grey(),
+            );
+
+            for (existing_commit, result) in [
+                (day_commits.0.as_ref(), day_result.0.as_ref()),
+                (day_commits.1.as_ref(), day_result.1.as_ref()),
+            ] {
+                if let Some(r) = result {
+                    let commit = commit::DayPartCommit::new(&r.answer);
+                    let commit_status =
+                        self.get_many_day_commit_status(existing_commit, Some(&commit));
+                    print!(
+                        "{padding:padding_w$}{status}  {duration_fg}{duration:duration_w$}{reset}",
+                        padding = "",
+                        padding_w = PADDING_WIDTH,
+                        status = commit_status,
+                        duration = r.duration,
+                        duration_fg = style::SetForegroundColor(r.duration.speed_color()),
+                        duration_w = DURATION_WIDTH,
+                        reset = style::SetForegroundColor(style::Color::Reset),
+                    );
+                } else {
+                    let commit_status = self.get_many_day_commit_status(existing_commit, None);
+                    print!(
+                        "{spacer:padding_w$}{status}  {spacer:duration_width$}",
+                        padding_w = PADDING_WIDTH,
+                        status = commit_status,
+                        spacer = "",
+                        duration_width = DURATION_WIDTH
+                    );
+                }
+            }
+
+            println!();
+        }
+
+        Ok(())
+    }
+
+    fn get_many_day_commit_status(
+        &self,
+        existing_commit: Option<&commit::DayPartCommit>,
+        current_commit: Option<&commit::DayPartCommit>,
+    ) -> StyledContent<&'static str> {
+        match (current_commit, existing_commit) {
+            (None, _) => "★".dark_grey(),
+            (Some(current), Some(existing)) if current == existing => "★".bold().yellow(),
+            (Some(_), Some(_)) => "✗".bold().red(),
+            (Some(_), None) => "?".bold().dark_magenta(),
         }
     }
 }
@@ -428,6 +541,38 @@ impl clap::builder::TypedValueParser for DayParser {
         let day = possible_day_values.parse_ref(cmd, arg, value)?;
         let n = day[3..].parse().unwrap();
         Ok(Day(n))
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum CliRunDaySpec {
+    All,
+    Day(Day),
+}
+
+#[derive(Clone)]
+struct CliRunDaySpecParser;
+
+impl clap::builder::TypedValueParser for CliRunDaySpecParser {
+    type Value = CliRunDaySpec;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &std::ffi::OsStr,
+    ) -> std::result::Result<Self::Value, clap::Error> {
+        let possible_values = iter::once("all")
+            .chain(days::CLI_DAY_VALUES.iter().copied())
+            .collect::<Vec<_>>();
+        let possible_day_spec_values_parser =
+            clap::builder::PossibleValuesParser::new(possible_values);
+        let day_spec = possible_day_spec_values_parser.parse_ref(cmd, arg, value)?;
+        Ok(if day_spec == "all" {
+            CliRunDaySpec::All
+        } else {
+            CliRunDaySpec::Day(Day(day_spec[3..].parse().unwrap()))
+        })
     }
 }
 
