@@ -8,21 +8,46 @@ use anyhow::{Result, bail};
 use criterion::{BenchmarkId, Criterion};
 use crossterm::style;
 
-pub(crate) type DayPartAnswer = Box<dyn ::std::fmt::Display>;
+macro_rules! day_modules {
+    ($( $day:ident ),+ $(,)?) => {
+        $(
+            mod $day;
+        )+
 
-pub(crate) struct DayPartResult {
-    pub(crate) answer: DayPartAnswer,
-    pub(crate) duration: DayPartDuration,
+        pub(crate) static CLI_DAY_VALUES: &[&str] = &[$(
+            stringify!($day)
+        ),+];
+
+        static DAY_EXECUTORS: &[DayExecutors] = &[$(
+            self::$day::EXECUTORS
+        ),+];
+
+        static DAY_VISUALIZERS: &[DayVisualizers] = &[$(
+            self::$day::VISUALIZERS
+        ),+];
+    };
 }
+
+day_modules![
+    day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15,
+    day16
+];
+
+type DayExecutors = (DayPartExecutors, DayPartExecutors);
+type DayPartExecutors = &'static [(&'static str, DayPartExecutorFn)];
+type DayPartExecutorFn = for<'input> fn(&'input str) -> Option<DayPartAnswer>;
+
+pub(crate) type DayPartAnswer = Box<dyn ::std::fmt::Display>;
 
 pub(crate) struct DayResult(
     pub(crate) Option<DayPartResult>,
     pub(crate) Option<DayPartResult>,
 );
 
-type DayPartExecutorFn = for<'input> fn(&'input str) -> Option<DayPartAnswer>;
-type DayPartExecutors = &'static [(&'static str, DayPartExecutorFn)];
-type DayExecutors = (DayPartExecutors, DayPartExecutors);
+pub(crate) struct DayPartResult {
+    pub(crate) answer: DayPartAnswer,
+    pub(crate) duration: DayPartDuration,
+}
 
 pub(crate) struct DayPartDuration(Duration);
 
@@ -118,28 +143,8 @@ impl fmt::Display for DayPartDuration {
     }
 }
 
-type DayPartVisualizerFn = DayPartExecutorFn;
 type DayVisualizers = (Option<DayPartVisualizerFn>, Option<DayPartVisualizerFn>);
-
-macro_rules! day_modules {
-    ($( $day:ident ),+ $(,)?) => {
-        $(
-            mod $day;
-        )+
-
-        pub(crate) static CLI_DAY_VALUES: &[&str] = &[$(
-            stringify!($day)
-        ),+];
-
-        static DAY_EXECUTORS: &[DayExecutors] = &[$(
-            self::$day::EXECUTORS
-        ),+];
-
-        static DAY_VISUALIZERS: &[DayVisualizers] = &[$(
-            self::$day::VISUALIZERS
-        ),+];
-    };
-}
+type DayPartVisualizerFn = DayPartExecutorFn;
 
 #[macro_export]
 macro_rules! day_executors {
@@ -169,11 +174,6 @@ macro_rules! day_visualizers {
         pub(super) static VISUALIZERS: super::DayVisualizers = (Some($viz1), Some($viz2));
     };
 }
-
-day_modules![
-    day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15,
-    day16
-];
 
 pub(crate) fn execute_day(day_i: u32, part1: bool, part2: bool, input: String) -> DayResult {
     let executors = DAY_EXECUTORS[(day_i - 1) as usize];
