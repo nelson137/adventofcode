@@ -104,7 +104,7 @@ pub(crate) fn bench_day(
 ) -> Result<()> {
     let day_executors = DAY_EXECUTORS[(day_i - 1) as usize];
 
-    let (commit1, commit2) = crate::commit::get_existing_commits(day_i)?;
+    let crate::commit::DayCommits(commit1, commit2) = crate::commit::get_existing_commits(day_i)?;
 
     if part1 {
         let mut group = c.benchmark_group(format!("Day{day_i}-Pt1"));

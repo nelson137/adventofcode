@@ -9,6 +9,11 @@ use anyhow::{Context, Result, bail};
 pub(crate) static PUZZLE_ANSWERS_DIR: LazyLock<PathBuf> =
     LazyLock::new(|| Path::new(crate::PUZZLE_DIR).join("answers"));
 
+pub(crate) struct DayCommits(
+    pub(crate) Option<DayPartCommit>,
+    pub(crate) Option<DayPartCommit>,
+);
+
 pub(crate) fn create_answers_dir() -> Result<()> {
     fs::create_dir_all(&*PUZZLE_ANSWERS_DIR).with_context(|| {
         format!(
@@ -83,12 +88,10 @@ impl DayPartCommit {
     }
 }
 
-pub(crate) fn get_existing_commits(
-    day_i: u32,
-) -> Result<(Option<DayPartCommit>, Option<DayPartCommit>)> {
+pub(crate) fn get_existing_commits(day_i: u32) -> Result<DayCommits> {
     let commit1_path = PUZZLE_ANSWERS_DIR.join(format!("day{day_i}.1"));
     let commit2_path = PUZZLE_ANSWERS_DIR.join(format!("day{day_i}.2"));
-    Ok((
+    Ok(DayCommits(
         DayPartCommit::parse_from_file(&commit1_path)?,
         DayPartCommit::parse_from_file(&commit2_path)?,
     ))
