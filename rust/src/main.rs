@@ -294,10 +294,8 @@ impl CliRunCommand {
             let commit1 = commit::DayPartCommit::new(&r1.answer);
             let commit_status = self.get_commit_status(existing_commits.0, commit1);
             println!(
-                "Part 1: {}{}    {}",
-                r1.answer,
-                commit_status,
-                format!("({:?})", r1.duration).dark_grey()
+                "Part 1: {}{}    {:#}",
+                r1.answer, commit_status, r1.duration
             );
         }
 
@@ -305,10 +303,8 @@ impl CliRunCommand {
             let commit2 = commit::DayPartCommit::new(&r2.answer);
             let commit_status = self.get_commit_status(existing_commits.1, commit2);
             println!(
-                "Part 2: {}{}    {}",
-                r2.answer,
-                commit_status,
-                format!("({:?})", r2.duration).dark_grey()
+                "Part 2: {}{}    {:#}",
+                r2.answer, commit_status, r2.duration
             );
         }
 

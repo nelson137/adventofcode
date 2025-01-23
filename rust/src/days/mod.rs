@@ -1,13 +1,18 @@
-use std::time::{Duration, Instant};
+use std::{
+    fmt,
+    time::{Duration, Instant},
+};
 
+use adventofcode as aoc;
 use anyhow::{Result, bail};
 use criterion::{BenchmarkId, Criterion};
+use crossterm::style;
 
 pub(crate) type DayPartAnswer = Box<dyn ::std::fmt::Display>;
 
 pub(crate) struct DayPartResult {
     pub(crate) answer: DayPartAnswer,
-    pub(crate) duration: Duration,
+    pub(crate) duration: DayPartDuration,
 }
 
 pub(crate) struct DayResult(
@@ -18,6 +23,100 @@ pub(crate) struct DayResult(
 type DayPartExecutorFn = for<'input> fn(&'input str) -> Option<DayPartAnswer>;
 type DayPartExecutors = &'static [(&'static str, DayPartExecutorFn)];
 type DayExecutors = (DayPartExecutors, DayPartExecutors);
+
+pub(crate) struct DayPartDuration(Duration);
+
+impl fmt::Display for DayPartDuration {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        #[rustfmt::skip]
+        #[allow(clippy::identity_op)]
+        const MAX_WIDTH: usize =
+            1 /* '('    */ +
+            3 /* int    */ +
+            1 /* '.'    */ +
+            2 /* fract  */ +
+            2 /* suffix */ +
+            1 /* ')'    */ +
+            0;
+
+        const NANOS_PER_MILLI: u32 = 1_000_000;
+        const NANOS_PER_MICRO: u32 = 1_000;
+
+        let mut chars_written = 0_u64;
+
+        if f.alternate() {
+            write!(f, "{}(", style::SetForegroundColor(style::Color::DarkGrey))?;
+            chars_written += 1;
+        }
+
+        fn fmt_decimal(
+            f: &mut fmt::Formatter,
+            int: u32,
+            fract: u32,
+            suffix: &str,
+        ) -> ::std::result::Result<u64, fmt::Error> {
+            let mut chars_written = 0;
+
+            let fract_rounded = (fract + 5) / 10;
+            if fract_rounded > 0 {
+                write!(f, "{int}.{fract_rounded:02}{suffix}")?;
+                chars_written += aoc::count_digits(int as u64);
+                chars_written += 1 /* '.' */;
+                chars_written += 2 /* fract digits */;
+                chars_written += suffix.chars().count() as u64;
+            } else {
+                write!(f, "{int}{suffix}")?;
+                chars_written += aoc::count_digits(int as u64);
+                chars_written += suffix.chars().count() as u64;
+            }
+
+            Ok(chars_written)
+        }
+
+        if self.0.as_secs() > 0 {
+            let int = self.0.as_secs();
+            if int > 999 {
+                write!(f, ">999s")?;
+                chars_written += 5;
+            } else {
+                let fract = self.0.subsec_millis();
+                chars_written += fmt_decimal(f, int as u32, fract, "s")?;
+            }
+        } else if self.0.subsec_nanos() >= NANOS_PER_MILLI {
+            let int = self.0.subsec_millis();
+            let fract = (self.0.subsec_nanos() % NANOS_PER_MILLI) / NANOS_PER_MICRO;
+            chars_written += fmt_decimal(f, int, fract, "ms")?;
+        } else if self.0.subsec_nanos() >= NANOS_PER_MICRO {
+            let int = self.0.subsec_micros();
+            let fract = self.0.subsec_nanos() % NANOS_PER_MICRO;
+            chars_written += fmt_decimal(f, int, fract, "µs")?;
+        } else {
+            let int = self.0.subsec_nanos();
+            let fract = 0;
+            chars_written += fmt_decimal(f, int, fract, "ns")?;
+        }
+
+        if f.alternate() {
+            write!(f, "){}", style::SetForegroundColor(style::Color::Reset))?;
+            chars_written += 1;
+        }
+
+        let chars_remaining = if let Some(width) = f.width() {
+            width
+        } else if f.alternate() {
+            MAX_WIDTH
+        } else {
+            0
+        }
+        .saturating_sub(chars_written as usize);
+
+        if chars_remaining > 0 {
+            write!(f, "{:width$}", "", width = chars_remaining)?;
+        }
+
+        Ok(())
+    }
+}
 
 type DayPartVisualizerFn = DayPartExecutorFn;
 type DayVisualizers = (Option<DayPartVisualizerFn>, Option<DayPartVisualizerFn>);
@@ -84,7 +183,10 @@ pub(crate) fn execute_day(day_i: u32, part1: bool, part2: bool, input: String) -
             let t = Instant::now();
             let answer = part(&input);
             let duration = t.elapsed();
-            answer.map(|answer| DayPartResult { answer, duration })
+            answer.map(|answer| DayPartResult {
+                answer,
+                duration: DayPartDuration(duration),
+            })
         } else {
             None
         }
