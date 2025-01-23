@@ -78,9 +78,9 @@ impl hash::Hasher for Murmur3MixHash64 {
         // The 64-bit finalizer mixer from MurmerHash3:
         // https://github.com/aappleby/smhasher/blob/0ff96f7835817a27d0487325b6c16033e2992eb5/src/MurmurHash3.cpp#L83-L87
         self.value ^= self.value >> 33;
-        self.value *= 0xff51afd7ed558ccd;
+        self.value = self.value.wrapping_mul(0xff51afd7ed558ccd);
         self.value ^= self.value >> 33;
-        self.value *= 0xc4ceb9fe1a85ec53;
+        self.value = self.value.wrapping_mul(0xc4ceb9fe1a85ec53);
         self.value ^= self.value >> 33;
     }
 }
