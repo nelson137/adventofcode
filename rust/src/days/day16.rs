@@ -110,11 +110,15 @@ impl Maze<'_> {
     fn solve_astar(&self) -> Option<u64> {
         let start = Node::new(self.start_pos, Direction::default());
 
+        // TODO: benchmark with a Fibonacci Heap
+        // [crate](https://crates.io/crates/fibheap)
         let mut open_set = MinHeap::<ScoredNode>::new();
         open_set.push(ScoredNode::new(start));
 
+        // TODO: try making this a `GridVec<[Node; 4]>`
         let mut preceding = HashMap::<Node, Node>::new();
 
+        // TODO: try making this a `GridVec<[Node; 4]>`
         let mut g_scores = HashMap::<Node, u64>::new();
         g_scores.insert(start, 0);
 
