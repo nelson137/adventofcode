@@ -2,13 +2,13 @@ use std::{
     cmp,
     collections::{BinaryHeap, HashMap},
     fmt,
-    io::{self, Read, Write},
+    io::{self, Read},
     ops,
 };
 
 use anyhow::Result;
 use crossterm::{
-    cursor, execute, queue,
+    cursor, queue,
     style::{self, Stylize},
     terminal,
 };
@@ -23,7 +23,7 @@ crate::day_visualizers! {
     []
 }
 
-const SEP: &str = " / ";
+mod viz;
 
 fn parse(input: &str) -> Maze {
     let mut rows = Vec::new();
@@ -208,17 +208,8 @@ impl Maze<'_> {
         None
     }
 
-    fn viz_solve_astar(&self) {
-        let mut stdout = io::stdout();
-        execute!(stdout, terminal::EnterAlternateScreen, cursor::Hide).unwrap();
-        terminal::enable_raw_mode().unwrap();
-
-        let result = self._viz_solve_astar_impl(&mut stdout);
-
-        execute!(stdout, terminal::LeaveAlternateScreen, cursor::Show).unwrap();
-        terminal::disable_raw_mode().unwrap();
-
-        result.unwrap();
+    fn viz_solve_astar(&self) -> Option<usize> {
+        viz::run(|stdout| self._viz_solve_astar_impl(stdout))
     }
 
     fn _viz_solve_astar_impl(&self, stdout: &mut io::Stdout) -> Result<Option<usize>> {
@@ -413,50 +404,17 @@ impl Maze<'_> {
         open_set: &[ScoredNode],
         solution: Option<Node>,
     ) -> Result<()> {
-        let (term_width, term_height) = terminal::size()?;
+        let (term_width, _term_height) = terminal::size()?;
 
         // Maze
 
-        queue!(stdout, cursor::MoveTo(0, 0))?;
-        for &row in &self.rows {
-            queue!(stdout, terminal::Clear(terminal::ClearType::CurrentLine))?;
-            for b in row.bytes() {
-                let content = match b {
-                    b'#' => "█".grey(),
-                    b'.' => " ".stylize(),
-                    b'S' => "S".bold().yellow(),
-                    b'E' => "E".bold().yellow(),
-                    _ => unreachable!(),
-                };
-                queue!(stdout, style::PrintStyledContent(content))?;
-            }
-            queue!(stdout, cursor::MoveToNextLine(1))?;
-        }
+        viz::draw_maze(stdout, &self.rows)?;
 
         // Open Set
 
         queue!(stdout, cursor::SavePosition)?;
 
-        for (i, ns) in open_set.iter().enumerate() {
-            // if ns.node.pos == self.start_pos || ns.node.pos == self.end_pos {
-            //     continue;
-            // }
-            queue!(
-                stdout,
-                cursor::MoveTo(ns.node.pos.col as u16, ns.node.pos.row as u16),
-            )?;
-            let mut content = match ns.node.dir {
-                Direction::North => "^",
-                Direction::East => ">",
-                Direction::South => "v",
-                Direction::West => "<",
-            }
-            .yellow();
-            if i == 0 {
-                content = content.on_yellow().black();
-            }
-            queue!(stdout, style::PrintStyledContent(content))?;
-        }
+        viz::draw_open_set(stdout, open_set)?;
 
         queue!(stdout, cursor::RestorePosition)?;
 
@@ -507,63 +465,7 @@ impl Maze<'_> {
             style::Print("━".repeat(term_width as usize)),
         )?;
 
-        stdout.flush()?;
-
-        queue!(stdout, terminal::Clear(terminal::ClearType::FromCursorDown))?;
-
-        let (_cur_col, cur_row) = cursor::position()?;
-
-        let rows_remaining = term_height.saturating_sub(cur_row + 1) as usize;
-
-        let log_chunks = logs
-            .iter()
-            .rev()
-            .flat_map(|line| {
-                let Some(i) = line.find(SEP) else {
-                    return vec![line.as_str()].into_iter().rev();
-                };
-
-                let mut chunk_start = 0;
-                let mut chunk_end = i;
-                let mut chunks = vec![];
-
-                while chunk_end < line.len() {
-                    match line[chunk_end + SEP.len()..].find(SEP) {
-                        Some(i) => {
-                            if chunk_end - chunk_start + SEP.len() + i <= term_width as usize {
-                                chunk_end += SEP.len() + i;
-                            } else {
-                                chunks.push(&line[chunk_start..chunk_end]);
-                                chunk_start = chunk_end;
-                                chunk_end += SEP.len() + i;
-                            }
-                        }
-                        None => {
-                            if line.len() - chunk_start <= term_width as usize {
-                                chunks.push(&line[chunk_start..]);
-                            } else {
-                                chunks.push(&line[chunk_start..chunk_end]);
-                                chunks.push(&line[chunk_end..]);
-                            }
-                            break;
-                        }
-                    }
-                }
-
-                chunks.into_iter().rev()
-            })
-            .take(rows_remaining)
-            .collect::<Vec<_>>();
-
-        for chunk in log_chunks.into_iter().rev() {
-            queue!(stdout, cursor::MoveToNextLine(1), style::Print(chunk))?;
-        }
-
-        // for log in logs.iter().rev().take(rows_remaining).rev() {
-        //     queue!(stdout, cursor::MoveToNextLine(1), style::Print(log))?;
-        // }
-
-        stdout.flush()?;
+        viz::draw_logs(stdout, logs)?;
 
         Ok(())
     }
@@ -814,9 +716,9 @@ fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 fn part1_viz(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let maze = parse(input);
 
-    maze.viz_solve_astar();
+    let cost = maze.viz_solve_astar();
 
-    None
+    cost.map(|c| Box::new(c) as Box<dyn std::fmt::Display>)
 }
 
 fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
