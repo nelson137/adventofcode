@@ -20,7 +20,7 @@ crate::day_executors! {
 
 crate::day_visualizers! {
     [part1_viz]
-    []
+    [part2_viz]
 }
 
 mod viz;
@@ -473,6 +473,368 @@ impl Maze<'_> {
 
         Ok(())
     }
+
+    fn width(&self) -> usize {
+        self.rows[0].len()
+    }
+
+    fn height(&self) -> usize {
+        self.rows.len()
+    }
+
+    /// https://en.wikipedia.org/wiki/A*_search_algorithm#Pseudocode
+    ///
+    ///
+    /// ```
+    /// function Dijkstra(Graph, source):
+    ///     create vertex priority queue Q
+    ///
+    ///     dist[source] ← 0                          // Initialization
+    ///     Q.add_with_priority(source, 0)            // associated priority equals dist[·]
+    ///
+    ///     for each vertex v in Graph.Vertices:
+    ///         if v ≠ source
+    ///             prev[v] ← UNDEFINED               // Predecessor of v
+    ///             dist[v] ← INFINITY                // Unknown distance from source to v
+    ///             // Q.add_with_priority(v, INFINITY) // XXX
+    ///
+    ///     while Q is not empty:                     // The main loop
+    ///         u ← Q.extract_min()                   // Remove and return best vertex
+    ///         for each neighbor v of u:             // Go through all v neighbors of u
+    ///             alt ← dist[u] + Graph.Edges(u, v)
+    ///             if alt < dist[v]:
+    ///                 prev[v] ← u
+    ///                 dist[v] ← alt
+    ///                 // Q.decrease_priority(v, alt) // XXX
+    ///                 Q.add_with_priority(v, alt)
+    ///
+    ///     return dist, prev
+    /// ```
+    fn solve_dijkstras(&self) -> Option<u64> {
+        let start = Node::new(self.start_pos, Direction::default());
+
+        let mut open_set = MinHeap::<ScoredNode>::new();
+        open_set.push(ScoredNode::new(start));
+
+        // for pos in self.rows.iter().copied().enumerate().flat_map(|(r, row)| {
+        //     row.bytes()
+        //         .enumerate()
+        //         .filter_map(|(c, b)| (b == b'.').then_some(Pos::new(r, c)))
+        // }) {
+        //     if pos != self.start_pos {
+        //         for dir in Direction::ALL_DIRECTIONS {
+        //             open_set.push(ScoredNode::new(Node::new(pos, dir)));
+        //         }
+        //     }
+        // }
+
+        let mut dist = GridVec::new(self.width(), self.height(), u64::MAX);
+
+        let mut preceding = GridVec::new(self.width(), self.height(), Pos::NONE);
+
+        while let Some(current) = open_set.pop() {
+            if current.node.pos == self.end_pos {
+                return Some(current.f_score);
+            }
+
+            {
+                // let mut next = current;
+                //
+                // loop {
+                //     let probe_pos = next.forward_pos();
+                //     if self[probe_pos] == b'#' {
+                //         break;
+                //     }
+                //     next.node.pos = probe_pos;
+                //     next.f_score += 1;
+                //     if self[probe_pos.orthogonal1_to(current.node.dir)] != b'#'
+                //         || self[probe_pos.orthogonal2_to(current.node.dir)] != b'#'
+                //     {
+                //         break;
+                //     }
+                // }
+                //
+                // if next.node.pos != current.node.pos {
+                //     let tentative_g_score = g_scores
+                //         .get(&current.node)
+                //         .map(|s| s + next.f_score - current.f_score)
+                //         .unwrap_or(u64::MAX);
+                //     let next_g_score = *g_scores.get(&next.node).unwrap_or(&u64::MAX);
+                //     if tentative_g_score < next_g_score {
+                //         preceding.insert(next.node, current.node);
+                //         g_scores.insert(next.node, tentative_g_score);
+                //         let f_score =
+                //             tentative_g_score + next.node.pos.manhattan_distance(self.end_pos);
+                //         if !open_set.contains(next.node) {
+                //             next.f_score = f_score;
+                //             open_set.push(next);
+                //         }
+                //     }
+                // }
+
+                let next = current.forward();
+
+                if self[next.node.pos] != b'#' && next.f_score < dist[next.node.pos] {
+                    preceding[next.node.pos] = current.node.pos;
+                    dist[next.node.pos] = next.f_score;
+                    open_set.push(next);
+                }
+            }
+
+            {
+                let next = current.rotate_cw();
+                let next_forward_pos = next.forward_pos();
+
+                if self[next_forward_pos] != b'#' && next.f_score < dist[next.node.pos] {
+                    preceding[next.node.pos] = current.node.pos;
+                    dist[next.node.pos] = next.f_score;
+                    open_set.push(next);
+                }
+            }
+
+            {
+                let next = current.rotate_ccw();
+                let next_forward_pos = next.forward_pos();
+
+                if self[next_forward_pos] != b'#' && next.f_score < dist[next.node.pos] {
+                    preceding[next.node.pos] = current.node.pos;
+                    dist[next.node.pos] = next.f_score;
+                    open_set.push(next);
+                }
+            }
+        }
+
+        None
+    }
+
+    fn viz_solve_dijkstras(&self) -> Option<u64> {
+        viz::run(|stdout| self._viz_solve_dijkstras_impl(stdout))
+    }
+
+    fn _viz_solve_dijkstras_impl(&self, stdout: &mut io::Stdout) -> Result<Option<u64>> {
+        // Algorithm setup
+
+        let start = Node::new(self.start_pos, Direction::default());
+
+        let mut open_set = MinHeap::<ScoredNode>::new();
+        open_set.push(ScoredNode::new(start));
+
+        let mut dist = GridVec::new(self.width(), self.height(), [u64::MAX; 4]);
+
+        let mut preceding = GridVec::new(
+            self.width(),
+            self.height(),
+            [Node::new(Pos::NONE, Direction::default()); 4],
+        );
+
+        // Viz loop
+
+        let mut solution = None;
+
+        let mut logs = Vec::<String>::new();
+        let mut steps = 5_u32;
+        steps = 206; // XXX
+        for _ in 0..steps {
+            let current_solution = self._viz_solve_dijkstras_step(
+                &mut logs,
+                steps,
+                &mut open_set,
+                &mut dist,
+                &mut preceding,
+            );
+            solution = solution.or(current_solution);
+        }
+
+        self._viz_solve_dijkstras_draw(
+            stdout,
+            &logs,
+            steps,
+            &preceding,
+            open_set.0.as_slice(),
+            solution,
+        )?;
+
+        let mut inbuf = [0, 0, 0, 0];
+        let mut n_read: usize;
+
+        loop {
+            n_read = match io::stdin().read(&mut inbuf) {
+                Ok(n) => n,
+                Err(err) if err.kind() == io::ErrorKind::Interrupted => continue,
+                Err(err) => bail!(err),
+            };
+
+            match (n_read, inbuf[0]) {
+                // Escape | ^C | ^D | q | Q
+                (1, 0x1b | 0x03 | 0x04 | b'q' | b'Q') => break,
+                // \r | Space
+                (1, 0x0d | b' ') if !open_set.is_empty() => {
+                    steps += 1;
+                    let current_solution = self._viz_solve_dijkstras_step(
+                        &mut logs,
+                        steps,
+                        &mut open_set,
+                        &mut dist,
+                        &mut preceding,
+                    );
+                    solution = solution.or(current_solution);
+                    self._viz_solve_dijkstras_draw(
+                        stdout,
+                        &logs,
+                        steps,
+                        &preceding,
+                        open_set.0.as_slice(),
+                        solution,
+                    )?;
+                }
+                _ => {}
+            }
+        }
+
+        Ok(solution.map(|n| n.f_score))
+    }
+
+    fn _viz_solve_dijkstras_step(
+        &self,
+        _logs: &mut Vec<String>,
+        _step: u32,
+        open_set: &mut MinHeap<ScoredNode>,
+        dist: &mut GridVec<[u64; 4]>,
+        preceding: &mut GridVec<[Node; 4]>,
+    ) -> Option<ScoredNode> {
+        if let Some(current) = open_set.pop() {
+            if current.node.pos == self.end_pos {
+                return Some(current);
+            }
+
+            {
+                let next = current.forward();
+                let next_dist = dist[next.node];
+
+                if self[next.node.pos] != b'#' && next.f_score < next_dist {
+                    preceding[next.node] = current.node;
+                    _logs.push(format!(
+                        "{} {} -> {}",
+                        current.node.pos, current.node.dir, next.node.pos
+                    ));
+                    dist[next.node] = next.f_score;
+                    open_set.push(next);
+                }
+            }
+
+            {
+                let next = current.rotate_cw();
+                let next_forward_pos = next.forward_pos();
+                let next_dist = dist[next.node];
+
+                if self[next_forward_pos] != b'#' && next.f_score < next_dist {
+                    preceding[next.node] = current.node;
+                    _logs.push(format!(
+                        "{} {} -> {}",
+                        current.node.pos, current.node.dir, next.node.dir
+                    ));
+                    dist[next.node] = next.f_score;
+                    open_set.push(next);
+                }
+            }
+
+            {
+                let next = current.rotate_ccw();
+                let next_forward_pos = next.forward_pos();
+                let next_dist = dist[next.node];
+
+                if self[next_forward_pos] != b'#' && next.f_score < next_dist {
+                    preceding[next.node] = current.node;
+                    _logs.push(format!(
+                        "{} {} -> {}",
+                        current.node.pos, current.node.dir, next.node.dir
+                    ));
+                    dist[next.node] = next.f_score;
+                    open_set.push(next);
+                }
+            }
+        }
+
+        None
+    }
+
+    fn _viz_solve_dijkstras_draw(
+        &self,
+        stdout: &mut io::Stdout,
+        logs: &[String],
+        step: u32,
+        preceding: &GridVec<[Node; 4]>,
+        open_set: &[ScoredNode],
+        solution: Option<ScoredNode>,
+    ) -> Result<()> {
+        let (term_width, _term_height) = terminal::size()?;
+
+        // Maze
+
+        viz::draw_maze(stdout, &self.rows)?;
+
+        // Open Set
+
+        queue!(stdout, cursor::SavePosition)?;
+
+        viz::draw_open_set(stdout, open_set)?;
+
+        queue!(stdout, cursor::RestorePosition)?;
+
+        // Solution Path
+
+        if let Some(end) = solution {
+            let path = "@".green();
+            let path_cmd = style::PrintStyledContent(path);
+
+            let mut node = end.node;
+            loop {
+                let prev = preceding[node];
+                if prev.pos == Pos::NONE {
+                    break;
+                }
+                queue!(
+                    stdout,
+                    cursor::MoveTo(prev.pos.col as u16, prev.pos.row as u16),
+                    path_cmd
+                )?;
+                node = prev;
+            }
+
+            queue!(stdout, cursor::RestorePosition)?;
+        }
+
+        // Status
+
+        queue!(
+            stdout,
+            cursor::MoveToNextLine(1),
+            style::Print("Step: "),
+            style::Print(step),
+        )?;
+
+        queue!(
+            stdout,
+            cursor::MoveToNextLine(1),
+            style::Print("Next: "),
+            terminal::Clear(terminal::ClearType::UntilNewLine),
+        )?;
+        if let Some(next) = open_set.first() {
+            queue!(stdout, style::Print(next.node.pos))?;
+        }
+
+        // Logs
+
+        queue!(
+            stdout,
+            cursor::MoveToNextLine(2),
+            style::Print("━".repeat(term_width as usize)),
+        )?;
+
+        viz::draw_logs(stdout, logs)?;
+
+        Ok(())
+    }
 }
 
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -492,7 +854,9 @@ impl fmt::Display for Pos {
 }
 
 impl Pos {
-    fn new(row: usize, col: usize) -> Self {
+    const NONE: Self = Self::new(usize::MAX, usize::MAX);
+
+    const fn new(row: usize, col: usize) -> Self {
         Self { row, col }
     }
 
@@ -592,6 +956,8 @@ impl fmt::Display for Direction {
 }
 
 impl Direction {
+    const ALL_DIRECTIONS: [Self; 4] = [Self::North, Self::East, Self::South, Self::West];
+
     fn rotate_cw(self) -> Self {
         match self {
             Self::North => Self::East,
@@ -709,6 +1075,75 @@ impl MinHeap<ScoredNode> {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+struct ScoredPos {
+    pos: Pos,
+    dist: u64,
+}
+
+impl PartialOrd for ScoredPos {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ScoredPos {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        other.dist.cmp(&self.dist)
+    }
+}
+
+impl ScoredPos {
+    fn new(pos: Pos) -> Self {
+        Self {
+            pos,
+            dist: u64::MAX,
+        }
+    }
+}
+
+struct GridVec<T> {
+    width: usize,
+    grid: Vec<T>,
+}
+
+impl<T: Clone> GridVec<T> {
+    fn new(width: usize, height: usize, init: T) -> Self {
+        Self {
+            width,
+            grid: vec![init; width * height],
+        }
+    }
+}
+
+impl<T> ops::Index<Pos> for GridVec<T> {
+    type Output = T;
+
+    fn index(&self, pos: Pos) -> &Self::Output {
+        &self.grid[pos.row * self.width + pos.col]
+    }
+}
+
+impl<T> ops::IndexMut<Pos> for GridVec<T> {
+    fn index_mut(&mut self, pos: Pos) -> &mut Self::Output {
+        &mut self.grid[pos.row * self.width + pos.col]
+    }
+}
+
+impl<T> ops::Index<Node> for GridVec<[T; 4]> {
+    type Output = T;
+
+    fn index(&self, node: Node) -> &Self::Output {
+        &self[node.pos][node.dir as u8 as usize]
+    }
+}
+
+impl<T> ops::IndexMut<Node> for GridVec<[T; 4]> {
+    fn index_mut(&mut self, node: Node) -> &mut Self::Output {
+        &mut self[node.pos][node.dir as u8 as usize]
+    }
+}
+
 fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let maze = parse(input);
 
@@ -726,7 +1161,19 @@ fn part1_viz(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 }
 
 fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    _ = input;
+    println!("{input}");
 
-    None
+    let maze = parse(input);
+
+    let cost = maze.solve_dijkstras();
+
+    cost.map(|c| Box::new(c) as Box<dyn std::fmt::Display>)
+}
+
+fn part2_viz(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+    let maze = parse(input);
+
+    let cost = maze.viz_solve_dijkstras();
+
+    cost.map(|c| Box::new(c) as Box<dyn std::fmt::Display>)
 }
