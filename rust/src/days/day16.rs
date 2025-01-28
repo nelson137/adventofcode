@@ -6,7 +6,7 @@ use std::{
     ops,
 };
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use crossterm::{
     cursor, queue,
     style::{self, Stylize},
@@ -252,7 +252,11 @@ impl Maze<'_> {
         let mut n_read: usize;
 
         loop {
-            n_read = io::stdin().read(&mut inbuf)?;
+            n_read = match io::stdin().read(&mut inbuf) {
+                Ok(n) => n,
+                Err(err) if err.kind() == io::ErrorKind::Interrupted => continue,
+                Err(err) => bail!(err),
+            };
 
             match (n_read, inbuf[0]) {
                 // Escape | ^C | ^D | q | Q
@@ -685,7 +689,7 @@ impl fmt::Display for MinHeap<ScoredNode> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (i, sn) in self.0.as_slice().iter().enumerate() {
             if i > 0 {
-                write!(f, "{SEP}")?;
+                write!(f, "{}", viz::SEP)?;
             }
             write!(f, "{:5} {:#} {}", sn.f_score, sn.node.pos, sn.node.dir)?;
         }
