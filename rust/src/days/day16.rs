@@ -1,9 +1,9 @@
 use std::{
-    cmp,
-    collections::{BinaryHeap, HashMap},
+    array, cmp,
+    collections::{BinaryHeap, HashMap, HashSet},
     fmt,
-    io::{self, Read},
-    ops,
+    io::{self, Read, Write},
+    mem, ops,
 };
 
 use anyhow::{Result, bail};
@@ -528,13 +528,13 @@ impl Maze<'_> {
         //     }
         // }
 
-        let mut dist = GridVec::new(self.width(), self.height(), u64::MAX);
+        let mut dist = GridVec::new(self.width(), self.height(), [u64::MAX; 4]);
 
-        let mut preceding = GridVec::new(self.width(), self.height(), Pos::NONE);
+        let mut preceding = GridVec::new(self.width(), self.height(), array::from_fn(|_| vec![]));
 
         while let Some(current) = open_set.pop() {
             if current.node.pos == self.end_pos {
-                return Some(current.f_score);
+                return self._solve_dijkstras_count(&preceding);
             }
 
             {
@@ -574,9 +574,9 @@ impl Maze<'_> {
 
                 let next = current.forward();
 
-                if self[next.node.pos] != b'#' && next.f_score < dist[next.node.pos] {
-                    preceding[next.node.pos] = current.node.pos;
-                    dist[next.node.pos] = next.f_score;
+                if self[next.node.pos] != b'#' && next.f_score <= dist[next.node] {
+                    preceding[next.node].push(current.node);
+                    dist[next.node] = next.f_score;
                     open_set.push(next);
                 }
             }
@@ -585,9 +585,9 @@ impl Maze<'_> {
                 let next = current.rotate_cw();
                 let next_forward_pos = next.forward_pos();
 
-                if self[next_forward_pos] != b'#' && next.f_score < dist[next.node.pos] {
-                    preceding[next.node.pos] = current.node.pos;
-                    dist[next.node.pos] = next.f_score;
+                if self[next_forward_pos] != b'#' && next.f_score <= dist[next.node] {
+                    preceding[next.node].push(current.node);
+                    dist[next.node] = next.f_score;
                     open_set.push(next);
                 }
             }
@@ -596,15 +596,51 @@ impl Maze<'_> {
                 let next = current.rotate_ccw();
                 let next_forward_pos = next.forward_pos();
 
-                if self[next_forward_pos] != b'#' && next.f_score < dist[next.node.pos] {
-                    preceding[next.node.pos] = current.node.pos;
-                    dist[next.node.pos] = next.f_score;
+                if self[next_forward_pos] != b'#' && next.f_score <= dist[next.node] {
+                    preceding[next.node].push(current.node);
+                    dist[next.node] = next.f_score;
                     open_set.push(next);
                 }
             }
         }
 
         None
+    }
+
+    fn _solve_dijkstras_count(&self, preceding: &GridVec<[Vec<Node>; 4]>) -> Option<u64> {
+        let mut solution_path_nodes = HashSet::new();
+        // solution_path_nodes.insert(end.node);
+
+        // let mut node_gen = vec![end.node];
+        let mut node_gen = vec![];
+        let mut next_node_gen = vec![];
+
+        for dir in Direction::ALL_DIRECTIONS {
+            let node = Node::new(self.end_pos, dir);
+            solution_path_nodes.insert(node);
+            node_gen.push(node);
+        }
+
+        loop {
+            if node_gen.is_empty() {
+                break;
+            }
+            while let Some(node) = node_gen.pop() {
+                for &prev in &*preceding[node] {
+                    if solution_path_nodes.insert(prev) && prev.pos != self.start_pos {
+                        next_node_gen.push(prev);
+                    }
+                }
+            }
+            mem::swap(&mut node_gen, &mut next_node_gen);
+        }
+
+        let solution_path_node_positions = solution_path_nodes
+            .iter()
+            .map(|n| n.pos)
+            .collect::<HashSet<_>>();
+
+        Some(solution_path_node_positions.len() as u64)
     }
 
     fn viz_solve_dijkstras(&self) -> Option<u64> {
@@ -621,11 +657,7 @@ impl Maze<'_> {
 
         let mut dist = GridVec::new(self.width(), self.height(), [u64::MAX; 4]);
 
-        let mut preceding = GridVec::new(
-            self.width(),
-            self.height(),
-            [Node::new(Pos::NONE, Direction::default()); 4],
-        );
+        let mut preceding = GridVec::new(self.width(), self.height(), array::from_fn(|_| vec![]));
 
         // Viz loop
 
@@ -633,7 +665,9 @@ impl Maze<'_> {
 
         let mut logs = Vec::<String>::new();
         let mut steps = 5_u32;
-        steps = 206; // XXX
+        steps = 206; // XXX: test1
+        steps = 410; // XXX: test2
+        steps = 932393; // XXX: real input: end pos first discovered
         for _ in 0..steps {
             let current_solution = self._viz_solve_dijkstras_step(
                 &mut logs,
@@ -647,7 +681,7 @@ impl Maze<'_> {
 
         self._viz_solve_dijkstras_draw(
             stdout,
-            &logs,
+            &mut logs,
             steps,
             &preceding,
             open_set.0.as_slice(),
@@ -680,7 +714,7 @@ impl Maze<'_> {
                     solution = solution.or(current_solution);
                     self._viz_solve_dijkstras_draw(
                         stdout,
-                        &logs,
+                        &mut logs,
                         steps,
                         &preceding,
                         open_set.0.as_slice(),
@@ -700,7 +734,7 @@ impl Maze<'_> {
         _step: u32,
         open_set: &mut MinHeap<ScoredNode>,
         dist: &mut GridVec<[u64; 4]>,
-        preceding: &mut GridVec<[Node; 4]>,
+        preceding: &mut GridVec<[Vec<Node>; 4]>,
     ) -> Option<ScoredNode> {
         if let Some(current) = open_set.pop() {
             if current.node.pos == self.end_pos {
@@ -711,8 +745,8 @@ impl Maze<'_> {
                 let next = current.forward();
                 let next_dist = dist[next.node];
 
-                if self[next.node.pos] != b'#' && next.f_score < next_dist {
-                    preceding[next.node] = current.node;
+                if self[next.node.pos] != b'#' && next.f_score <= next_dist {
+                    preceding[next.node].push(current.node);
                     _logs.push(format!(
                         "{} {} -> {}",
                         current.node.pos, current.node.dir, next.node.pos
@@ -727,8 +761,8 @@ impl Maze<'_> {
                 let next_forward_pos = next.forward_pos();
                 let next_dist = dist[next.node];
 
-                if self[next_forward_pos] != b'#' && next.f_score < next_dist {
-                    preceding[next.node] = current.node;
+                if self[next_forward_pos] != b'#' && next.f_score <= next_dist {
+                    preceding[next.node].push(current.node);
                     _logs.push(format!(
                         "{} {} -> {}",
                         current.node.pos, current.node.dir, next.node.dir
@@ -743,8 +777,8 @@ impl Maze<'_> {
                 let next_forward_pos = next.forward_pos();
                 let next_dist = dist[next.node];
 
-                if self[next_forward_pos] != b'#' && next.f_score < next_dist {
-                    preceding[next.node] = current.node;
+                if self[next_forward_pos] != b'#' && next.f_score <= next_dist {
+                    preceding[next.node].push(current.node);
                     _logs.push(format!(
                         "{} {} -> {}",
                         current.node.pos, current.node.dir, next.node.dir
@@ -761,9 +795,9 @@ impl Maze<'_> {
     fn _viz_solve_dijkstras_draw(
         &self,
         stdout: &mut io::Stdout,
-        logs: &[String],
+        logs: &mut Vec<String>,
         step: u32,
-        preceding: &GridVec<[Node; 4]>,
+        preceding: &GridVec<[Vec<Node>; 4]>,
         open_set: &[ScoredNode],
         solution: Option<ScoredNode>,
     ) -> Result<()> {
@@ -787,19 +821,44 @@ impl Maze<'_> {
             let path = "@".green();
             let path_cmd = style::PrintStyledContent(path);
 
-            let mut node = end.node;
+            let mut solution_path_nodes = HashSet::new();
+            solution_path_nodes.insert(end.node);
+
+            let mut node_gen = vec![end.node];
+            let mut next_node_gen = vec![];
+
             loop {
-                let prev = preceding[node];
-                if prev.pos == Pos::NONE {
+                if node_gen.is_empty() {
                     break;
                 }
+                while let Some(node) = node_gen.pop() {
+                    for &prev in &*preceding[node] {
+                        if solution_path_nodes.insert(prev) && prev.pos != self.start_pos {
+                            next_node_gen.push(prev);
+                        }
+                    }
+                }
+                mem::swap(&mut node_gen, &mut next_node_gen);
+            }
+
+            let solution_path_node_positions = solution_path_nodes
+                .iter()
+                .map(|n| n.pos)
+                .collect::<HashSet<_>>();
+            logs.push(format!(
+                "Solution path has {} nodes",
+                solution_path_node_positions.len()
+            ));
+
+            for node in solution_path_nodes {
                 queue!(
                     stdout,
-                    cursor::MoveTo(prev.pos.col as u16, prev.pos.row as u16),
+                    cursor::MoveTo(node.pos.col as u16, node.pos.row as u16),
                     path_cmd
                 )?;
-                node = prev;
             }
+
+            stdout.flush()?;
 
             queue!(stdout, cursor::RestorePosition)?;
         }
@@ -1161,8 +1220,6 @@ fn part1_viz(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 }
 
 fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    println!("{input}");
-
     let maze = parse(input);
 
     let cost = maze.solve_dijkstras();
