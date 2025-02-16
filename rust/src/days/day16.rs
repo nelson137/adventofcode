@@ -912,6 +912,18 @@ impl fmt::Display for Pos {
     }
 }
 
+impl From<Pos> for (usize, usize) {
+    fn from(value: Pos) -> Self {
+        (value.row, value.col)
+    }
+}
+
+impl From<(usize, usize)> for Pos {
+    fn from((row, col): (usize, usize)) -> Self {
+        Pos::new(row, col)
+    }
+}
+
 impl Pos {
     const NONE: Self = Self::new(usize::MAX, usize::MAX);
 
@@ -1048,6 +1060,12 @@ impl Node {
     }
 }
 
+impl fmt::Debug for Node {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", self.pos, self.dir)
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 struct ScoredNode {
     node: Node,
@@ -1091,6 +1109,12 @@ impl ScoredNode {
         self.node.dir = self.node.dir.rotate_ccw();
         self.f_score += 1000;
         self
+    }
+}
+
+impl fmt::Debug for ScoredNode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?} {}", self.node, self.f_score)
     }
 }
 
@@ -1203,6 +1227,20 @@ impl<T> ops::IndexMut<Node> for GridVec<[T; 4]> {
     }
 }
 
+impl<T> ops::Index<ScoredNode> for GridVec<[T; 4]> {
+    type Output = T;
+
+    fn index(&self, sn: ScoredNode) -> &Self::Output {
+        &self[sn.node]
+    }
+}
+
+impl<T> ops::IndexMut<ScoredNode> for GridVec<[T; 4]> {
+    fn index_mut(&mut self, sn: ScoredNode) -> &mut Self::Output {
+        &mut self[sn.node]
+    }
+}
+
 fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let maze = parse(input);
 
@@ -1230,7 +1268,10 @@ fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 fn part2_viz(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let maze = parse(input);
 
-    let cost = maze.viz_solve_dijkstras();
+    // let cost = maze.viz_solve_dijkstras();
+    // cost.map(|c| Box::new(c) as Box<dyn std::fmt::Display>)
 
-    cost.map(|c| Box::new(c) as Box<dyn std::fmt::Display>)
+    viz::run_dijkstras(&maze);
+
+    None
 }

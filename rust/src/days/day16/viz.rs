@@ -7,6 +7,10 @@ use crossterm::{
     terminal,
 };
 
+mod dijkstras;
+
+pub(super) use dijkstras::run as run_dijkstras;
+
 pub(super) const SEP: &str = " / ";
 
 pub(super) fn run<F, R>(imp: F) -> R
