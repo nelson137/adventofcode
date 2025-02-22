@@ -110,6 +110,8 @@ impl Maze<'_> {
     fn solve_astar(&self) -> Option<u64> {
         let start = Node::new(self.start_pos, Direction::default());
 
+        let mut discovered = GridVec::<bool>::new(self.width(), self.height(), false);
+
         // TODO: benchmark with a Fibonacci Heap
         // [crate](https://crates.io/crates/fibheap)
         let mut open_set = MinHeap::<ScoredNode>::new();
@@ -155,7 +157,8 @@ impl Maze<'_> {
                     g_scores.insert(next.node, tentative_g_score);
                     let f_score =
                         tentative_g_score + next.node.pos.manhattan_distance(self.end_pos);
-                    if !open_set.contains(next.node) {
+                    if !discovered[next.node.pos] {
+                        discovered[next.node.pos] = true;
                         next.f_score = f_score;
                         open_set.push(next);
                     }
