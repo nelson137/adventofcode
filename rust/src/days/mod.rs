@@ -223,10 +223,12 @@ pub(crate) fn bench_day(
     if part1 {
         let mut group = c.benchmark_group(format!("Day{day_i}-Pt1"));
         for &(name, run) in day_executors.0 {
-            if let (Some(c), Some(answer)) = (&commit1, run(&input)) {
-                if crate::commit::DayPartCommit::new(&answer) != *c {
-                    bail!("incorrect bench impl :(");
+            match (&commit1, run(&input)) {
+                (Some(_), None) => bail!("incorrect bench impl :("),
+                (Some(c), Some(answer)) if crate::commit::DayPartCommit::new(&answer) != *c => {
+                    bail!("incorrect bench impl :(")
                 }
+                _ => {}
             }
             let id = BenchmarkId::new(name, "in");
             group.bench_with_input(id, &*input, |b, i| b.iter(|| run(i)));
@@ -236,10 +238,12 @@ pub(crate) fn bench_day(
     if part2 {
         let mut group = c.benchmark_group(format!("Day{day_i}-Pt2"));
         for &(name, run) in day_executors.1 {
-            if let (Some(c), Some(answer)) = (&commit2, run(&input)) {
-                if crate::commit::DayPartCommit::new(&answer) != *c {
-                    bail!("incorrect bench impl :(");
+            match (&commit2, run(&input)) {
+                (Some(_), None) => bail!("incorrect bench impl :("),
+                (Some(c), Some(answer)) if crate::commit::DayPartCommit::new(&answer) != *c => {
+                    bail!("incorrect bench impl :(")
                 }
+                _ => {}
             }
             let id = BenchmarkId::new(name, "in");
             group.bench_with_input(id, &*input, |b, i| b.iter(|| run(i)));
