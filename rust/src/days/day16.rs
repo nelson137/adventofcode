@@ -910,7 +910,7 @@ impl fmt::Display for Pos {
         if f.alternate() {
             write!(f, "r={:2} c={:2}", self.row, self.col)
         } else {
-            write!(f, "r={},c={}", self.row, self.col)
+            write!(f, "r={} c={}", self.row, self.col)
         }
     }
 }
