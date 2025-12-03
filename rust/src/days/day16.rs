@@ -25,7 +25,7 @@ crate::day_visualizers! {
 
 mod viz;
 
-fn parse(input: &str) -> Maze {
+fn parse(input: &str) -> Maze<'_> {
     let mut rows = Vec::new();
     let mut start = Pos::default();
     let mut end = Pos::default();
@@ -646,6 +646,7 @@ impl Maze<'_> {
         Some(solution_path_node_positions.len() as u64)
     }
 
+    #[allow(dead_code, reason = "WIP")]
     fn viz_solve_dijkstras(&self) -> Option<u64> {
         viz::run(|stdout| self._viz_solve_dijkstras_impl(stdout))
     }
@@ -667,10 +668,7 @@ impl Maze<'_> {
         let mut solution = None;
 
         let mut logs = Vec::<String>::new();
-        let mut steps = 5_u32;
-        steps = 206; // XXX: test1
-        steps = 410; // XXX: test2
-        steps = 932393; // XXX: real input: end pos first discovered
+        let mut steps = 932393; // XXX: real input: end pos first discovered
         for _ in 0..steps {
             let current_solution = self._viz_solve_dijkstras_step(
                 &mut logs,
@@ -928,8 +926,6 @@ impl From<(usize, usize)> for Pos {
 }
 
 impl Pos {
-    const NONE: Self = Self::new(usize::MAX, usize::MAX);
-
     const fn new(row: usize, col: usize) -> Self {
         Self { row, col }
     }
@@ -1161,32 +1157,32 @@ impl MinHeap<ScoredNode> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-struct ScoredPos {
-    pos: Pos,
-    dist: u64,
-}
-
-impl PartialOrd for ScoredPos {
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for ScoredPos {
-    fn cmp(&self, other: &Self) -> cmp::Ordering {
-        other.dist.cmp(&self.dist)
-    }
-}
-
-impl ScoredPos {
-    fn new(pos: Pos) -> Self {
-        Self {
-            pos,
-            dist: u64::MAX,
-        }
-    }
-}
+// #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+// struct ScoredPos {
+//     pos: Pos,
+//     dist: u64,
+// }
+//
+// impl PartialOrd for ScoredPos {
+//     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+//         Some(self.cmp(other))
+//     }
+// }
+//
+// impl Ord for ScoredPos {
+//     fn cmp(&self, other: &Self) -> cmp::Ordering {
+//         other.dist.cmp(&self.dist)
+//     }
+// }
+//
+// impl ScoredPos {
+//     fn new(pos: Pos) -> Self {
+//         Self {
+//             pos,
+//             dist: u64::MAX,
+//         }
+//     }
+// }
 
 struct GridVec<T> {
     width: usize,

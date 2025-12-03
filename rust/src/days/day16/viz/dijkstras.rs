@@ -1,5 +1,4 @@
 use std::{
-    array,
     collections::{HashSet, VecDeque},
     fmt::Write,
     time::{Duration, Instant},
@@ -36,7 +35,7 @@ struct App<'maze> {
     discovered: day::GridVec<bool>,
     open_set: day::MinHeap<day::ScoredNode>,
     dist: day::GridVec<[u64; 4]>,
-    preceding: day::GridVec<[HashSet<day::ScoredNode>; 4]>,
+    preceding: day::GridVec<HashSet<day::ScoredNode>>,
     solution: Option<day::ScoredNode>,
     solution_path: HashSet<day::Pos>,
     // UI state
@@ -57,11 +56,7 @@ impl<'maze> App<'maze> {
 
         let dist = day::GridVec::new(maze.width(), maze.height(), [u64::MAX; 4]);
 
-        let preceding = day::GridVec::new(
-            maze.width(),
-            maze.height(),
-            array::from_fn(|_| Default::default()),
-        );
+        let preceding = day::GridVec::new(maze.width(), maze.height(), Default::default());
 
         let mut this = Self {
             maze,
@@ -89,6 +84,7 @@ impl<'maze> App<'maze> {
         // this.steps = 932393; // XXX: input ??: before end pos discovered
         // this.steps = 24074; // XXX: input2: before end pos discovered
         this.steps = 15983; // XXX: input2: before end pos discovered (with backtracking prevention)
+        this.steps = 3000;
 
         for i in 1..=this.steps {
             let current_solution = this.step();
@@ -299,24 +295,21 @@ impl<'maze> App<'maze> {
                     }
                     self.dist[next] = next.f_score;
                     if is_target(&next) {
-                        self.log(format!("  before: {:?}", &self.preceding[next]));
+                        self.log(format!("  before: {:?}", &self.preceding[next.node.pos]));
                     }
-                    // self.preceding[next].retain(|p| p.f_score <= next.f_score);
-                    for set in &mut self.preceding[next.node.pos] {
-                        set.retain(|p| p.f_score <= next.f_score);
-                    }
+                    self.preceding[next.node.pos].retain(|p| p.f_score <= next.f_score);
                     if is_target(&next) {
-                        self.log(format!("  retain: {:?}", &self.preceding[next]));
+                        self.log(format!("  retain: {:?}", &self.preceding[next.node.pos]));
                     }
                     if !self.discovered[next.node.pos] {
                         self.discovered[next.node.pos] = true;
                         #[allow(clippy::collapsible_if)]
-                        if self.preceding[next].insert(current) {
+                        if self.preceding[next.node.pos].insert(current) {
                             self.open_set.push(next);
                         }
                     }
                     if is_target(&next) {
-                        self.log(format!("  after:  {:?}", &self.preceding[next]));
+                        self.log(format!("  after:  {:?}", &self.preceding[next.node.pos]));
                     }
                 }
             }
@@ -339,20 +332,17 @@ impl<'maze> App<'maze> {
                     }
                     self.dist[next] = next.f_score;
                     if is_target(&next) {
-                        self.log(format!("  before: {:?}", &self.preceding[next]));
+                        self.log(format!("  before: {:?}", &self.preceding[next.node.pos]));
                     }
-                    // self.preceding[next].retain(|p| p.f_score <= next.f_score);
-                    for set in &mut self.preceding[next.node.pos] {
-                        set.retain(|p| p.f_score <= next.f_score);
-                    }
+                    self.preceding[next.node.pos].retain(|p| p.f_score <= next.f_score);
                     if is_target(&next) {
-                        self.log(format!("  retain: {:?}", &self.preceding[next]));
+                        self.log(format!("  retain: {:?}", &self.preceding[next.node.pos]));
                     }
-                    if self.preceding[next].insert(current) {
+                    if self.preceding[next.node.pos].insert(current) {
                         self.open_set.push(next);
                     }
                     if is_target(&next) {
-                        self.log(format!("  after:  {:?}", &self.preceding[next]));
+                        self.log(format!("  after:  {:?}", &self.preceding[next.node.pos]));
                     }
                 }
             }
@@ -375,20 +365,17 @@ impl<'maze> App<'maze> {
                     }
                     self.dist[next] = next.f_score;
                     if is_target(&next) {
-                        self.log(format!("  before: {:?}", &self.preceding[next]));
+                        self.log(format!("  before: {:?}", &self.preceding[next.node.pos]));
                     }
-                    // self.preceding[next].retain(|p| p.f_score <= next.f_score);
-                    for set in &mut self.preceding[next.node.pos] {
-                        set.retain(|p| p.f_score <= next.f_score);
-                    }
+                    self.preceding[next.node.pos].retain(|p| p.f_score <= next.f_score);
                     if is_target(&next) {
-                        self.log(format!("  retain: {:?}", &self.preceding[next]));
+                        self.log(format!("  retain: {:?}", &self.preceding[next.node.pos]));
                     }
-                    if self.preceding[next].insert(current) {
+                    if self.preceding[next.node.pos].insert(current) {
                         self.open_set.push(next);
                     }
                     if is_target(&next) {
-                        self.log(format!("  after:  {:?}", &self.preceding[next]));
+                        self.log(format!("  after:  {:?}", &self.preceding[next.node.pos]));
                     }
                 }
             }
@@ -409,20 +396,16 @@ impl<'maze> App<'maze> {
             }
             while let Some(node) = node_gen.pop() {
                 let mut lowest_cost = u64::MAX;
-                for prev_set in &self.preceding[node.pos] {
-                    for prev in prev_set {
-                        lowest_cost = lowest_cost.min(prev.f_score);
-                    }
+                for prev in &self.preceding[node.pos] {
+                    lowest_cost = lowest_cost.min(prev.f_score);
                 }
 
-                for prev_set in &self.preceding[node.pos] {
-                    for prev in prev_set {
-                        if prev.f_score == lowest_cost
-                            && solution_path_nodes.insert(prev)
-                            && prev.node.pos != self.maze.start_pos
-                        {
-                            next_node_gen.push(prev.node);
-                        }
+                for prev in &self.preceding[node.pos] {
+                    if prev.f_score == lowest_cost
+                        && solution_path_nodes.insert(prev)
+                        && prev.node.pos != self.maze.start_pos
+                    {
+                        next_node_gen.push(prev.node);
                     }
                 }
             }
@@ -557,21 +540,20 @@ impl<'maze> App<'maze> {
         let cursor_pos: day::Pos = self.maze_table_state.selected_cell().unwrap().into();
         let mut debug_info_values = vec![
             ("Step".to_owned(), self.steps.to_string()),
+            ("Open Set Count".to_owned(), self.open_set.len().to_string()),
             ("Cursor".to_owned(), cursor_pos.to_string()),
         ];
-        let cursor_direction_preceding_sets = &self.preceding[cursor_pos];
-        for dir in day::Direction::ALL_DIRECTIONS {
-            let mut cursor_preceding = String::new();
-            for sn in &cursor_direction_preceding_sets[dir as u8 as usize] {
-                write!(
-                    &mut cursor_preceding,
-                    "{} {} ({}) / ",
-                    sn.node.pos, sn.node.dir, sn.f_score
-                )
-                .unwrap();
-            }
-            debug_info_values.push((format!("  Preceding {dir}"), cursor_preceding));
+        let cursor_direction_preceding = &self.preceding[cursor_pos];
+        let mut cursor_preceding = String::new();
+        for sn in cursor_direction_preceding {
+            write!(
+                &mut cursor_preceding,
+                "{} {} ({}) / ",
+                sn.node.pos, sn.node.dir, sn.f_score
+            )
+            .unwrap();
         }
+        debug_info_values.push(("  Preceding".into(), cursor_preceding));
         for dir in day::Direction::ALL_DIRECTIONS {
             let dist = self.dist[cursor_pos][dir as u8 as usize];
             debug_info_values.push((format!("       Dist {dir}"), format!("{dist}")))
