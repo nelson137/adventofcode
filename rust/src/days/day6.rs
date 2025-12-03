@@ -531,18 +531,13 @@ fn parse(input: &str) -> (Map, Cursor) {
     (map, cursor)
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 enum Direction {
+    #[default]
     North,
     East,
     South,
     West,
-}
-
-impl Default for Direction {
-    fn default() -> Self {
-        Self::North
-    }
 }
 
 impl Direction {
