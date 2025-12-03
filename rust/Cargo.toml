@@ -28,7 +28,6 @@ harness = false
 anyhow = "1.0.94"
 bitflags = "2.6.0"
 clap = { version = "4.5.23", features = ["derive"] }
-crc = "3.2.1"
 criterion = "0.5.1"
 crossterm = "0.28.1"
 fxhash = "0.2.1"

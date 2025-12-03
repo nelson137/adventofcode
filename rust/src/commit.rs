@@ -4,7 +4,7 @@ use std::{
     sync::LazyLock,
 };
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 
 pub(crate) static PUZZLE_ANSWERS_DIR: LazyLock<PathBuf> =
     LazyLock::new(|| Path::new(crate::PUZZLE_DIR).join("answers"));
@@ -23,26 +23,14 @@ pub(crate) fn create_answers_dir() -> Result<()> {
     })
 }
 
-const CRC: crc::Crc<u32> = crc::Crc::<u32>::new(&crc::CRC_32_BZIP2);
-
+#[derive(PartialEq)]
 pub(crate) struct DayPartCommit {
     pub(crate) answer: String,
-    pub(crate) checksum: u32,
-}
-
-impl PartialEq for DayPartCommit {
-    fn eq(&self, other: &Self) -> bool {
-        PartialEq::eq(&self.checksum, &other.checksum)
-    }
 }
 
 impl fmt::Display for DayPartCommit {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let checksum = self.checksum;
-        let answer = self.answer.trim();
-        writeln!(f, "{checksum}")?;
-        writeln!(f, "---")?;
-        writeln!(f, "{answer}")?;
+        writeln!(f, "{}", self.answer.trim())?;
         Ok(())
     }
 }
@@ -50,8 +38,7 @@ impl fmt::Display for DayPartCommit {
 impl DayPartCommit {
     pub(crate) fn new(answer: &dyn fmt::Display) -> Self {
         let answer = answer.to_string();
-        let checksum = CRC.checksum(answer.trim().as_bytes());
-        Self { answer, checksum }
+        Self { answer }
     }
 
     fn parse_from_file(path: impl AsRef<Path>) -> Result<Option<Self>> {
@@ -67,13 +54,8 @@ impl DayPartCommit {
     }
 
     fn parse(commit_str: &str) -> Result<Self> {
-        let Some((checksum, answer)) = commit_str.split_once("\n---\n") else {
-            bail!("invalid commit format");
-        };
-
         Ok(Self {
-            answer: answer.to_string(),
-            checksum: checksum.parse::<u32>()?,
+            answer: commit_str.trim().to_owned(),
         })
     }
 
