@@ -33,9 +33,19 @@ day_modules![
     day16
 ];
 
-type DayExecutors = (DayPartExecutors, DayPartExecutors);
-type DayPartExecutors = &'static [(&'static str, DayPartExecutorFn)];
+type DayExecutors = (&'static [DayPartExecutor], &'static [DayPartExecutor]);
 type DayPartExecutorFn = for<'input> fn(&'input str) -> Option<DayPartAnswer>;
+
+pub struct DayPartExecutor {
+    name: &'static str,
+    executor: DayPartExecutorFn,
+}
+
+impl DayPartExecutor {
+    pub const fn new(name: &'static str, executor: DayPartExecutorFn) -> Self {
+        Self { name, executor }
+    }
+}
 
 pub(crate) type DayPartAnswer = Box<dyn ::std::fmt::Display>;
 
@@ -165,8 +175,8 @@ macro_rules! day_executors {
         [$( $ex2:ident ),+ $(,)?]
     ) => {
         pub(super) static EXECUTORS: super::DayExecutors = (
-            &[$( (stringify!($ex1), $ex1) ),+],
-            &[$( (stringify!($ex2), $ex2) ),+],
+            &[$( super::DayPartExecutor::new(stringify!($ex1), $ex1) ),+],
+            &[$( super::DayPartExecutor::new(stringify!($ex2), $ex2) ),+],
         );
     };
 }
@@ -204,8 +214,8 @@ pub(crate) fn execute_day(day_i: u32, part1: bool, part2: bool, input: String) -
         }
     };
 
-    let part1_result = run_part(part1, executors.0[0].1);
-    let part2_result = run_part(part2, executors.1[0].1);
+    let part1_result = run_part(part1, executors.0[0].executor);
+    let part2_result = run_part(part2, executors.1[0].executor);
     DayResult(part1_result, part2_result)
 }
 
@@ -222,31 +232,31 @@ pub(crate) fn bench_day(
 
     if part1 {
         let mut group = c.benchmark_group(format!("Day{day_i}-Pt1"));
-        for &(name, run) in day_executors.0 {
-            match (&commit1, run(&input)) {
+        for e in day_executors.0 {
+            match (&commit1, (e.executor)(&input)) {
                 (Some(_), None) => bail!("incorrect bench impl :("),
                 (Some(c), Some(answer)) if crate::commit::DayPartCommit::new(&answer) != *c => {
                     bail!("incorrect bench impl :(")
                 }
                 _ => {}
             }
-            let id = BenchmarkId::new(name, "in");
-            group.bench_with_input(id, &*input, |b, i| b.iter(|| run(i)));
+            let id = BenchmarkId::new(e.name, "in");
+            group.bench_with_input(id, &*input, |b, i| b.iter(|| (e.executor)(i)));
         }
     }
 
     if part2 {
         let mut group = c.benchmark_group(format!("Day{day_i}-Pt2"));
-        for &(name, run) in day_executors.1 {
-            match (&commit2, run(&input)) {
+        for e in day_executors.1 {
+            match (&commit2, (e.executor)(&input)) {
                 (Some(_), None) => bail!("incorrect bench impl :("),
                 (Some(c), Some(answer)) if crate::commit::DayPartCommit::new(&answer) != *c => {
                     bail!("incorrect bench impl :(")
                 }
                 _ => {}
             }
-            let id = BenchmarkId::new(name, "in");
-            group.bench_with_input(id, &*input, |b, i| b.iter(|| run(i)));
+            let id = BenchmarkId::new(e.name, "in");
+            group.bench_with_input(id, &*input, |b, i| b.iter(|| (e.executor)(i)));
         }
     }
 
