@@ -39,8 +39,10 @@ pub(crate) fn get_input(day_i: u32) -> Result<String> {
             .get(&url)
             .header(H::COOKIE, format!("session={token}"))
             .send()
-            .and_then(Response::text)
-            .with_context(|| format!("failed to fetch puzzle input: {url}"))?;
+            .and_then(Response::error_for_status)
+            .with_context(|| format!("failed to fetch puzzle input for day {day_i}"))?
+            .text()
+            .with_context(|| format!("failed to decode puzzle input: {url}"))?;
 
         fs::write(&input_path, &input).with_context(|| {
             format!(
