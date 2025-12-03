@@ -8,12 +8,16 @@ pub(crate) static TOKEN_PATH: LazyLock<PathBuf> =
     LazyLock::new(|| crate::input::PUZZLE_INPUTS_DIR.join(".token"));
 
 pub(crate) fn get_token() -> Result<String> {
-    fs::read_to_string(&*TOKEN_PATH)
-        .with_context(|| format!("failed to read GitHub PAT file: {}", TOKEN_PATH.display()))
+    fs::read_to_string(&*TOKEN_PATH).with_context(|| {
+        format!(
+            "failed to read session token file: {}",
+            TOKEN_PATH.display()
+        )
+    })
 }
 
 pub(crate) fn prompt_for_token() -> Result<Option<String>> {
-    term::read_token().with_context(|| "failed to read GitHub PAT")
+    term::read_token().with_context(|| "failed to read session token")
 }
 
 pub(crate) fn set_token(token: String) -> Result<()> {
@@ -24,7 +28,7 @@ pub(crate) fn set_token(token: String) -> Result<()> {
         .open(&*TOKEN_PATH)?;
     writeln!(file, "{}", token.trim()).with_context(|| {
         format!(
-            "failed to write GitHub PAT to file: {}",
+            "failed to write session token to file: {}",
             TOKEN_PATH.display()
         )
     })

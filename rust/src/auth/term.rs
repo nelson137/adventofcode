@@ -9,16 +9,16 @@ use crossterm::{
 };
 
 pub(super) fn read_token() -> io::Result<Option<String>> {
-    let mut gh_pat_reader = GitHubPatReader::new()?;
+    let mut gh_pat_reader = TokenReader::new()?;
     gh_pat_reader.read()
 }
 
-struct GitHubPatReader {
+struct TokenReader {
     stdout: io::Stdout,
     buf: Vec<u8>,
 }
 
-impl GitHubPatReader {
+impl TokenReader {
     fn new() -> io::Result<Self> {
         enable_raw_mode()?;
         Ok(Self {
@@ -41,7 +41,7 @@ impl GitHubPatReader {
     fn read(&mut self) -> io::Result<Option<String>> {
         execute!(
             self.stdout,
-            style::Print("GitHub Personal Access Token: "),
+            style::Print("Session Token: "),
             cursor::SavePosition
         )?;
 
@@ -85,7 +85,7 @@ impl GitHubPatReader {
     }
 }
 
-impl Drop for GitHubPatReader {
+impl Drop for TokenReader {
     fn drop(&mut self) {
         disable_raw_mode().unwrap();
     }
