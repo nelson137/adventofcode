@@ -9,33 +9,18 @@ use anyhow::{Result, bail};
 use criterion::{BenchmarkId, Criterion};
 use crossterm::style;
 
-mod day1;
-mod day10;
-mod day11;
-mod day12;
-mod day13;
-mod day14;
-mod day15;
-mod day16;
-mod day2;
-mod day3;
-mod day4;
-mod day5;
-mod day6;
-mod day7;
-mod day8;
-mod day9;
+type YearAndDay = (&'static str, u32);
 
 pub struct DayModule {
-    id: u32,
+    key: YearAndDay,
     executors: DayExecutors,
     visualizers: DayVisualizers,
 }
 
 impl DayModule {
-    pub const fn new(id: u32) -> Self {
+    pub const fn new(year: &'static str, day: u32) -> Self {
         Self {
-            id,
+            key: (year, day),
             executors: (&[], &[]),
             visualizers: (None, None),
         }
@@ -70,20 +55,17 @@ macro_rules! day_part_executors {
 
 inventory::collect!(DayModule);
 
-pub(crate) static DAY_IDS: std::sync::LazyLock<Vec<u32>> =
-    std::sync::LazyLock::new(|| inventory::iter::<DayModule>().map(|m| m.id).collect());
-
-static DAY_EXECUTORS: std::sync::LazyLock<HashMap<u32, DayExecutors>> =
+static DAY_EXECUTORS: std::sync::LazyLock<HashMap<YearAndDay, DayExecutors>> =
     std::sync::LazyLock::new(|| {
         inventory::iter::<DayModule>()
-            .map(|m| (m.id, m.executors))
+            .map(|m| (m.key, m.executors))
             .collect()
     });
 
-static DAY_VISUALIZERS: std::sync::LazyLock<HashMap<u32, DayVisualizers>> =
+static DAY_VISUALIZERS: std::sync::LazyLock<HashMap<YearAndDay, DayVisualizers>> =
     std::sync::LazyLock::new(|| {
         inventory::iter::<DayModule>()
-            .map(|m| (m.id, m.visualizers))
+            .map(|m| (m.key, m.visualizers))
             .collect()
     });
 
@@ -103,6 +85,7 @@ impl DayPartExecutor {
 
 pub(crate) type DayPartAnswer = Box<dyn ::std::fmt::Display>;
 
+#[derive(Default)]
 pub(crate) struct DayResult(
     pub(crate) Option<DayPartResult>,
     pub(crate) Option<DayPartResult>,
@@ -222,8 +205,14 @@ impl fmt::Display for DayPartDuration {
 type DayVisualizers = (Option<DayPartVisualizerFn>, Option<DayPartVisualizerFn>);
 type DayPartVisualizerFn = DayPartExecutorFn;
 
-pub(crate) fn execute_day(day_i: u32, part1: bool, part2: bool, input: String) -> DayResult {
-    let executors = DAY_EXECUTORS[&day_i];
+pub(crate) fn execute_day(
+    year: &str,
+    day_i: u32,
+    part1: bool,
+    part2: bool,
+    input: String,
+) -> Option<DayResult> {
+    let executors = DAY_EXECUTORS.get(&(year, day_i))?;
 
     let run_part = |should_run: bool, part: DayPartExecutorFn| -> Option<DayPartResult> {
         if should_run {
@@ -241,22 +230,43 @@ pub(crate) fn execute_day(day_i: u32, part1: bool, part2: bool, input: String) -
 
     let part1_result = run_part(part1, executors.0[0].executor);
     let part2_result = run_part(part2, executors.1[0].executor);
-    DayResult(part1_result, part2_result)
+    Some(DayResult(part1_result, part2_result))
 }
 
 pub(crate) fn bench_day(
     c: &mut Criterion,
+    year: &str,
+    day_i: u32,
+    part1: bool,
+    part2: bool,
+    input: String,
+) -> Option<Result<()>> {
+    let day_executors = DAY_EXECUTORS.get(&(year, day_i))?;
+    Some(bench_day_inner(
+        c,
+        day_executors,
+        year,
+        day_i,
+        part1,
+        part2,
+        input,
+    ))
+}
+
+fn bench_day_inner(
+    c: &mut Criterion,
+    day_executors: &DayExecutors,
+    year: &str,
     day_i: u32,
     part1: bool,
     part2: bool,
     input: String,
 ) -> Result<()> {
-    let day_executors = DAY_EXECUTORS[&day_i];
-
-    let crate::commit::DayCommits(commit1, commit2) = crate::commit::get_existing_commits(day_i)?;
+    let crate::commit::DayCommits(commit1, commit2) =
+        crate::commit::get_existing_commits(year, day_i)?;
 
     if part1 {
-        let mut group = c.benchmark_group(format!("Day{day_i}-Pt1"));
+        let mut group = c.benchmark_group(format!("Year{year}-Day{day_i}-Pt1"));
         for e in day_executors.0 {
             match (&commit1, (e.executor)(&input)) {
                 (Some(_), None) => bail!("incorrect bench impl :("),
@@ -288,6 +298,6 @@ pub(crate) fn bench_day(
     Ok(())
 }
 
-pub(crate) fn get_day_visualizers(day_i: u32) -> DayVisualizers {
-    DAY_VISUALIZERS[&day_i]
+pub(crate) fn get_day_visualizers(year: &str, day_i: u32) -> Option<&DayVisualizers> {
+    DAY_VISUALIZERS.get(&(year, day_i))
 }

@@ -1,6 +1,6 @@
 use regex::Regex;
 
-inventory::submit!(super::DayModule::new(3).with_executors(
+inventory::submit!(crate::days::DayModule::new("2024", 3).with_executors(
     crate::day_part_executors![part1],
     crate::day_part_executors![part2],
 ));

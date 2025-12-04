@@ -12,9 +12,9 @@ use ratatui::{
     symbols, text, widgets,
 };
 
-use crate::days::day16 as day;
+use crate::puzzles::year2024::day16 as day;
 
-pub fn run(maze: &day::Maze) {
+pub fn run(maze: &super::super::Maze) {
     let result = {
         let mut terminal = ratatui::init();
         App::new(maze).run(&mut terminal)

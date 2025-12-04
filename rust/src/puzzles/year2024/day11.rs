@@ -1,6 +1,6 @@
 use adventofcode as aoc;
 
-inventory::submit!(super::DayModule::new(11).with_executors(
+inventory::submit!(crate::days::DayModule::new("2024", 11).with_executors(
     crate::day_part_executors![part1],
     crate::day_part_executors![part2],
 ));

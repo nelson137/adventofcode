@@ -21,6 +21,12 @@ pub(crate) fn prompt_for_token() -> Result<Option<String>> {
 }
 
 pub(crate) fn set_token(token: String) -> Result<()> {
+    fs::create_dir_all(&*crate::input::PUZZLE_INPUTS_DIR).with_context(|| {
+        format!(
+            "failed to create puzzle inputs directory: {}",
+            crate::input::PUZZLE_INPUTS_DIR.display()
+        )
+    })?;
     let mut file = fs::File::options()
         .write(true)
         .create(true)

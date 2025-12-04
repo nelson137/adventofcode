@@ -14,16 +14,18 @@ pub(crate) struct DayCommits(
     pub(crate) Option<DayPartCommit>,
 );
 
-pub(crate) fn create_answers_dir() -> Result<()> {
-    fs::create_dir_all(&*PUZZLE_ANSWERS_DIR).with_context(|| {
+fn create_answers_dir(year: &str) -> Result<PathBuf> {
+    let dir = PUZZLE_ANSWERS_DIR.join(year);
+    fs::create_dir_all(&dir).with_context(|| {
         format!(
             "failed to create puzzle answers directory: {}",
-            PUZZLE_ANSWERS_DIR.display()
+            dir.display()
         )
-    })
+    })?;
+    Ok(dir)
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub(crate) struct DayPartCommit {
     pub(crate) answer: String,
 }
@@ -59,10 +61,10 @@ impl DayPartCommit {
         })
     }
 
-    pub(crate) fn write(&self, day_i: u32, part: crate::Part) -> Result<()> {
-        create_answers_dir()?;
+    pub(crate) fn write(&self, year: &str, day_i: u32, part: crate::Part) -> Result<()> {
+        let dir = create_answers_dir(year)?;
 
-        let path = PUZZLE_ANSWERS_DIR.join(format!("day{day_i}.{}", part.number()));
+        let path = dir.join(format!("day{day_i}.{}", part.number()));
         let commit = self.to_string();
 
         fs::write(&path, commit)
@@ -70,9 +72,10 @@ impl DayPartCommit {
     }
 }
 
-pub(crate) fn get_existing_commits(day_i: u32) -> Result<DayCommits> {
-    let commit1_path = PUZZLE_ANSWERS_DIR.join(format!("day{day_i}.1"));
-    let commit2_path = PUZZLE_ANSWERS_DIR.join(format!("day{day_i}.2"));
+pub(crate) fn get_existing_commits(year: &str, day_i: u32) -> Result<DayCommits> {
+    let dir = create_answers_dir(year)?;
+    let commit1_path = dir.join(format!("day{day_i}.1"));
+    let commit2_path = dir.join(format!("day{day_i}.2"));
     Ok(DayCommits(
         DayPartCommit::parse_from_file(&commit1_path)?,
         DayPartCommit::parse_from_file(&commit2_path)?,

@@ -1,4 +1,4 @@
-inventory::submit!(super::DayModule::new(2).with_executors(
+inventory::submit!(crate::days::DayModule::new("2024", 2).with_executors(
     crate::day_part_executors![part1],
     crate::day_part_executors![part2],
 ));

@@ -14,17 +14,24 @@ use reqwest::{
 pub(crate) static PUZZLE_INPUTS_DIR: LazyLock<PathBuf> =
     LazyLock::new(|| Path::new(crate::PUZZLE_DIR).join("inputs"));
 
-pub(crate) fn create_inputs_dir() -> Result<()> {
-    fs::create_dir_all(&*PUZZLE_INPUTS_DIR).with_context(|| {
-        format!(
-            "failed to create puzzle inputs directory: {}",
-            PUZZLE_INPUTS_DIR.display()
-        )
-    })
+fn inputs_dir(year: &str) -> PathBuf {
+    PUZZLE_INPUTS_DIR.join(year)
 }
 
-pub(crate) fn get_input(day_i: u32) -> Result<String> {
-    let input_path = PUZZLE_INPUTS_DIR.join(format!("day{day_i}"));
+fn create_inputs_dir(year: &str) -> Result<PathBuf> {
+    let dir = inputs_dir(year);
+    fs::create_dir_all(&dir).with_context(|| {
+        format!(
+            "failed to create puzzle inputs directory: {}",
+            dir.display()
+        )
+    })?;
+    Ok(dir)
+}
+
+pub(crate) fn get_input(year: &str, day_i: u32) -> Result<String> {
+    let dir = create_inputs_dir(year)?;
+    let input_path = dir.join(format!("day{day_i}"));
 
     if input_path.exists() {
         fs::read_to_string(&input_path)
@@ -33,7 +40,7 @@ pub(crate) fn get_input(day_i: u32) -> Result<String> {
         let token = crate::auth::get_token()?;
         let token = token.trim();
 
-        let url = format!("https://adventofcode.com/2024/day/{day_i}/input");
+        let url = format!("https://adventofcode.com/{year}/day/{day_i}/input");
 
         let input = Client::new()
             .get(&url)
@@ -55,12 +62,13 @@ pub(crate) fn get_input(day_i: u32) -> Result<String> {
     }
 }
 
-fn test_input_path(day_i: u32, input_i: u32) -> PathBuf {
-    PUZZLE_INPUTS_DIR.join(format!("day{day_i}-test{input_i}"))
+fn test_input_path(dir: &Path, day_i: u32, input_i: u32) -> PathBuf {
+    dir.join(format!("day{day_i}-test{input_i}"))
 }
 
-pub(crate) fn get_test_input(day_i: u32, input_i: u32) -> Result<String> {
-    let test_input_path = test_input_path(day_i, input_i);
+pub(crate) fn get_test_input(year: &str, day_i: u32, input_i: u32) -> Result<String> {
+    let dir = inputs_dir(year);
+    let test_input_path = test_input_path(&dir, day_i, input_i);
 
     fs::read_to_string(&test_input_path).with_context(|| {
         format!(
@@ -70,8 +78,8 @@ pub(crate) fn get_test_input(day_i: u32, input_i: u32) -> Result<String> {
     })
 }
 
-pub(crate) fn set_test_input(day_i: u32, input_i: u32) -> Result<()> {
-    create_inputs_dir()?;
+pub(crate) fn set_test_input(year: &str, day_i: u32, input_i: u32) -> Result<()> {
+    let dir = create_inputs_dir(year)?;
 
     println!("Enter test input below, press ^D when done");
 
@@ -80,7 +88,7 @@ pub(crate) fn set_test_input(day_i: u32, input_i: u32) -> Result<()> {
         .read_to_end(&mut test_input)
         .with_context(|| "failed to read test input")?;
 
-    let test_input_path = test_input_path(day_i, input_i);
+    let test_input_path = test_input_path(&dir, day_i, input_i);
     fs::write(&test_input_path, test_input).with_context(|| {
         format!(
             "failed to write puzzle test input to file: {}",
