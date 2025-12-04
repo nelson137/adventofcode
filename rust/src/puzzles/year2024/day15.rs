@@ -5,7 +5,7 @@ use std::{
 
 use crossterm::style::Stylize;
 
-inventory::submit!(super::DayModule::new(15).with_executors(
+inventory::submit!(crate::days::DayModule::new("2024", 15).with_executors(
     crate::day_part_executors![part1],
     crate::day_part_executors![part2],
 ));

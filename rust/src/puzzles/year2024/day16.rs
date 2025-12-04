@@ -14,7 +14,7 @@ use crossterm::{
 };
 
 inventory::submit!(
-    super::DayModule::new(16)
+    crate::days::DayModule::new("2024", 16)
         .with_executors(
             crate::day_part_executors![part1],
             crate::day_part_executors![part2],

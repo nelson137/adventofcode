@@ -10,7 +10,7 @@ use crossterm::{cursor, execute, queue, style, terminal};
 use nalgebra::Vector2;
 
 inventory::submit!(
-    super::DayModule::new(14)
+    crate::days::DayModule::new("2024", 14)
         .with_executors(
             crate::day_part_executors![part1],
             crate::day_part_executors![part2],

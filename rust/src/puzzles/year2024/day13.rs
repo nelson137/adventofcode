@@ -1,6 +1,6 @@
 use std::fmt;
 
-inventory::submit!(super::DayModule::new(13).with_executors(
+inventory::submit!(crate::days::DayModule::new("2024", 13).with_executors(
     crate::day_part_executors![part1],
     crate::day_part_executors![part2],
 ));
