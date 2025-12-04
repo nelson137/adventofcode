@@ -28,6 +28,7 @@ dependencies = [
  "crossterm",
  "fxhash",
  "gtk4",
+ "inventory",
  "itertools 0.14.0",
  "nalgebra",
  "paste",
@@ -1308,6 +1309,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "inventory"
+version = "0.3.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc61209c082fbeb19919bee74b176221b27223e27b65d781eb91af24eb1fb46e"
+dependencies = [
+ "rustversion",
 ]
 
 [[package]]

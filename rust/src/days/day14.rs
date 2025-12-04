@@ -9,15 +9,14 @@ use anyhow::Result;
 use crossterm::{cursor, execute, queue, style, terminal};
 use nalgebra::Vector2;
 
-crate::day_executors! {
-    [part1]
-    [part2]
-}
-
-crate::day_visualizers! {
-    []
-    [part2_viz]
-}
+inventory::submit!(
+    super::DayModule::new(14)
+        .with_executors(
+            crate::day_part_executors![part1],
+            crate::day_part_executors![part2],
+        )
+        .with_pt2_visualizer(part2_viz)
+);
 
 struct Map {
     width: i64,

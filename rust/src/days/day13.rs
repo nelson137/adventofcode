@@ -1,14 +1,9 @@
 use std::fmt;
 
-crate::day_executors! {
-    [part1]
-    [part2]
-}
-
-crate::day_visualizers! {
-    []
-    []
-}
+inventory::submit!(super::DayModule::new(13).with_executors(
+    crate::day_part_executors![part1],
+    crate::day_part_executors![part2],
+));
 
 struct ClawMachine {
     a: Button,

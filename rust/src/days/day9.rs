@@ -1,14 +1,9 @@
 use std::collections::VecDeque;
 
-crate::day_executors! {
-    [part1_v2, part1]
-    [part2]
-}
-
-crate::day_visualizers! {
-    []
-    []
-}
+inventory::submit!(super::DayModule::new(9).with_executors(
+    crate::day_part_executors![part1_v2, part1],
+    crate::day_part_executors![part2],
+));
 
 #[inline(always)]
 fn parse_byte32(b: u8) -> u32 {

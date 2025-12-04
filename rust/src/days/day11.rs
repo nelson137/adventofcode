@@ -1,14 +1,9 @@
 use adventofcode as aoc;
 
-crate::day_executors! {
-    [part1]
-    [part2]
-}
-
-crate::day_visualizers! {
-    []
-    []
-}
+inventory::submit!(super::DayModule::new(11).with_executors(
+    crate::day_part_executors![part1],
+    crate::day_part_executors![part2],
+));
 
 fn try_split_digits(value: u64) -> Option<(u64, u64)> {
     let count = aoc::count_digits(value);

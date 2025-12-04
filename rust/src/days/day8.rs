@@ -1,14 +1,9 @@
 use std::{collections::HashMap, fmt, num::NonZeroU8, ops};
 
-crate::day_executors! {
-    [part1]
-    [part2]
-}
-
-crate::day_visualizers! {
-    []
-    []
-}
+inventory::submit!(super::DayModule::new(8).with_executors(
+    crate::day_part_executors![part1],
+    crate::day_part_executors![part2],
+));
 
 fn parse(input: &str) -> Map {
     let height = input.lines().count();

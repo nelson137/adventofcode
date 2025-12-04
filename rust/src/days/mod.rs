@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fmt,
     time::{Duration, Instant},
 };
@@ -8,30 +9,83 @@ use anyhow::{Result, bail};
 use criterion::{BenchmarkId, Criterion};
 use crossterm::style;
 
-macro_rules! day_modules {
-    ($( $day:ident ),+ $(,)?) => {
-        $(
-            mod $day;
-        )+
+mod day1;
+mod day10;
+mod day11;
+mod day12;
+mod day13;
+mod day14;
+mod day15;
+mod day16;
+mod day2;
+mod day3;
+mod day4;
+mod day5;
+mod day6;
+mod day7;
+mod day8;
+mod day9;
 
-        pub(crate) static CLI_DAY_VALUES: &[&str] = &[$(
-            stringify!($day)
-        ),+];
+pub struct DayModule {
+    id: u32,
+    executors: DayExecutors,
+    visualizers: DayVisualizers,
+}
 
-        static DAY_EXECUTORS: &[DayExecutors] = &[$(
-            self::$day::EXECUTORS
-        ),+];
+impl DayModule {
+    pub const fn new(id: u32) -> Self {
+        Self {
+            id,
+            executors: (&[], &[]),
+            visualizers: (None, None),
+        }
+    }
 
-        static DAY_VISUALIZERS: &[DayVisualizers] = &[$(
-            self::$day::VISUALIZERS
-        ),+];
+    pub const fn with_executors(
+        mut self,
+        pt1_executors: &'static [DayPartExecutor],
+        pt2_executors: &'static [DayPartExecutor],
+    ) -> Self {
+        self.executors = (pt1_executors, pt2_executors);
+        self
+    }
+
+    pub const fn with_pt1_visualizer(mut self, visualizer: DayPartVisualizerFn) -> Self {
+        self.visualizers.0 = Some(visualizer);
+        self
+    }
+
+    pub const fn with_pt2_visualizer(mut self, visualizer: DayPartVisualizerFn) -> Self {
+        self.visualizers.1 = Some(visualizer);
+        self
+    }
+}
+
+#[macro_export]
+macro_rules! day_part_executors {
+    ( $( $ex:ident ),+ $(,)? ) => {
+        &[$( $crate::days::DayPartExecutor::new(stringify!($ex), $ex) ),+]
     };
 }
 
-day_modules![
-    day1, day2, day3, day4, day5, day6, day7, day8, day9, day10, day11, day12, day13, day14, day15,
-    day16
-];
+inventory::collect!(DayModule);
+
+pub(crate) static DAY_IDS: std::sync::LazyLock<Vec<u32>> =
+    std::sync::LazyLock::new(|| inventory::iter::<DayModule>().map(|m| m.id).collect());
+
+static DAY_EXECUTORS: std::sync::LazyLock<HashMap<u32, DayExecutors>> =
+    std::sync::LazyLock::new(|| {
+        inventory::iter::<DayModule>()
+            .map(|m| (m.id, m.executors))
+            .collect()
+    });
+
+static DAY_VISUALIZERS: std::sync::LazyLock<HashMap<u32, DayVisualizers>> =
+    std::sync::LazyLock::new(|| {
+        inventory::iter::<DayModule>()
+            .map(|m| (m.id, m.visualizers))
+            .collect()
+    });
 
 type DayExecutors = (&'static [DayPartExecutor], &'static [DayPartExecutor]);
 type DayPartExecutorFn = for<'input> fn(&'input str) -> Option<DayPartAnswer>;
@@ -168,37 +222,8 @@ impl fmt::Display for DayPartDuration {
 type DayVisualizers = (Option<DayPartVisualizerFn>, Option<DayPartVisualizerFn>);
 type DayPartVisualizerFn = DayPartExecutorFn;
 
-#[macro_export]
-macro_rules! day_executors {
-    (
-        [$( $ex1:ident ),+ $(,)?]
-        [$( $ex2:ident ),+ $(,)?]
-    ) => {
-        pub(super) static EXECUTORS: super::DayExecutors = (
-            &[$( super::DayPartExecutor::new(stringify!($ex1), $ex1) ),+],
-            &[$( super::DayPartExecutor::new(stringify!($ex2), $ex2) ),+],
-        );
-    };
-}
-
-#[macro_export]
-macro_rules! day_visualizers {
-    ([           ] [           ]) => {
-        pub(super) static VISUALIZERS: super::DayVisualizers = (None, None);
-    };
-    ([$viz1:ident] [           ]) => {
-        pub(super) static VISUALIZERS: super::DayVisualizers = (Some($viz1), None);
-    };
-    ([           ] [$viz2:ident]) => {
-        pub(super) static VISUALIZERS: super::DayVisualizers = (None, Some($viz2));
-    };
-    ([$viz1:ident] [$viz2:ident]) => {
-        pub(super) static VISUALIZERS: super::DayVisualizers = (Some($viz1), Some($viz2));
-    };
-}
-
 pub(crate) fn execute_day(day_i: u32, part1: bool, part2: bool, input: String) -> DayResult {
-    let executors = DAY_EXECUTORS[(day_i - 1) as usize];
+    let executors = DAY_EXECUTORS[&day_i];
 
     let run_part = |should_run: bool, part: DayPartExecutorFn| -> Option<DayPartResult> {
         if should_run {
@@ -226,7 +251,7 @@ pub(crate) fn bench_day(
     part2: bool,
     input: String,
 ) -> Result<()> {
-    let day_executors = DAY_EXECUTORS[(day_i - 1) as usize];
+    let day_executors = DAY_EXECUTORS[&day_i];
 
     let crate::commit::DayCommits(commit1, commit2) = crate::commit::get_existing_commits(day_i)?;
 
@@ -264,5 +289,5 @@ pub(crate) fn bench_day(
 }
 
 pub(crate) fn get_day_visualizers(day_i: u32) -> DayVisualizers {
-    DAY_VISUALIZERS[(day_i - 1) as usize]
+    DAY_VISUALIZERS[&day_i]
 }

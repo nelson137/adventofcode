@@ -1,14 +1,9 @@
 use regex::Regex;
 
-crate::day_executors! {
-    [part1]
-    [part2]
-}
-
-crate::day_visualizers! {
-    []
-    []
-}
+inventory::submit!(super::DayModule::new(3).with_executors(
+    crate::day_part_executors![part1],
+    crate::day_part_executors![part2],
+));
 
 fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     let args_re = Regex::new(r"mul\((?<a>\d+),(?<b>\d+)\)").unwrap();

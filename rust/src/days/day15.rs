@@ -5,15 +5,10 @@ use std::{
 
 use crossterm::style::Stylize;
 
-crate::day_executors! {
-    [part1]
-    [part2]
-}
-
-crate::day_visualizers! {
-    []
-    []
-}
+inventory::submit!(super::DayModule::new(15).with_executors(
+    crate::day_part_executors![part1],
+    crate::day_part_executors![part2],
+));
 
 fn parse_v1(input: &str) -> (Map, Vec<Instruction>, Pos) {
     let width = input.lines().next().unwrap().trim().len();

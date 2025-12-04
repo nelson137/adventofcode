@@ -1,14 +1,9 @@
 use std::{cmp::Ordering, iter};
 
-crate::day_executors! {
-    [part1]
-    [part2]
-}
-
-crate::day_visualizers! {
-    []
-    []
-}
+inventory::submit!(super::DayModule::new(5).with_executors(
+    crate::day_part_executors![part1],
+    crate::day_part_executors![part2],
+));
 
 fn parse(input: &str) -> (PrintRules, Vec<Vec<u32>>) {
     let mut rules = Vec::<(u32, u32)>::new();

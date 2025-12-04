@@ -13,15 +13,15 @@ use crossterm::{
     terminal,
 };
 
-crate::day_executors! {
-    [part1]
-    [part2]
-}
-
-crate::day_visualizers! {
-    [part1_viz]
-    [part2_viz]
-}
+inventory::submit!(
+    super::DayModule::new(16)
+        .with_executors(
+            crate::day_part_executors![part1],
+            crate::day_part_executors![part2],
+        )
+        .with_pt1_visualizer(part1_viz)
+        .with_pt2_visualizer(part2_viz)
+);
 
 mod viz;
 

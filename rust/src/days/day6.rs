@@ -6,15 +6,14 @@ use std::{
 
 mod viz_gtk;
 
-crate::day_executors! {
-    [part1]
-    [part2_fast, part2_brute]
-}
-
-crate::day_visualizers! {
-    []
-    [part2_fast_viz]
-}
+inventory::submit!(
+    super::DayModule::new(6)
+        .with_executors(
+            crate::day_part_executors![part1],
+            crate::day_part_executors![part2_fast, part2_brute],
+        )
+        .with_pt2_visualizer(part2_fast_viz)
+);
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Cell {

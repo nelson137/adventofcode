@@ -274,7 +274,7 @@ struct CliRunCommand {
     #[arg(long, num_args = 0..=1, require_equals = true, default_missing_value = "1")]
     test: Option<u32>,
 
-    #[arg(name = "day", value_parser = CliRunDaySpecParser)]
+    #[arg(name = "day", value_parser = CliRunDaySpecParser::new())]
     day_spec: CliRunDaySpec,
 }
 
@@ -354,7 +354,7 @@ impl CliRunCommand {
             .map(
                 |day_i| -> Result<(u32, commit::DayCommits, days::DayResult)> {
                     let commits = commit::get_existing_commits(day_i)?;
-                    if day_i as usize <= days::CLI_DAY_VALUES.len() {
+                    if day_i as usize <= days::DAY_IDS.len() {
                         let input = input::get_input(day_i)?;
                         let result = days::execute_day(day_i, true, true, input);
                         Ok((day_i, commits, result))
@@ -525,6 +525,10 @@ impl CliDefaultedPartsGroup {
 #[derive(Clone, Copy, Debug)]
 struct Day(u32);
 
+fn day_id_to_cli(n: u32) -> &'static str {
+    format!("day{n}").leak() as &'static str
+}
+
 #[derive(Clone)]
 struct DayParser;
 
@@ -537,7 +541,9 @@ impl clap::builder::TypedValueParser for DayParser {
         arg: Option<&clap::Arg>,
         value: &std::ffi::OsStr,
     ) -> Result<Self::Value, clap::Error> {
-        let possible_day_values = clap::builder::PossibleValuesParser::new(days::CLI_DAY_VALUES);
+        let possible_day_values = clap::builder::PossibleValuesParser::new(
+            days::DAY_IDS.iter().copied().map(day_id_to_cli),
+        );
         let day = possible_day_values.parse_ref(cmd, arg, value)?;
         let n = day[3..].parse().unwrap();
         Ok(Day(n))
@@ -551,7 +557,21 @@ enum CliRunDaySpec {
 }
 
 #[derive(Clone)]
-struct CliRunDaySpecParser;
+struct CliRunDaySpecParser {
+    possible_values_parser: clap::builder::PossibleValuesParser,
+}
+
+impl CliRunDaySpecParser {
+    fn new() -> Self {
+        let possible_values = iter::once("all")
+            .chain(days::DAY_IDS.iter().copied().map(day_id_to_cli))
+            .collect::<Vec<_>>();
+        let possible_values_parser = clap::builder::PossibleValuesParser::new(possible_values);
+        Self {
+            possible_values_parser,
+        }
+    }
+}
 
 impl clap::builder::TypedValueParser for CliRunDaySpecParser {
     type Value = CliRunDaySpec;
@@ -562,12 +582,7 @@ impl clap::builder::TypedValueParser for CliRunDaySpecParser {
         arg: Option<&clap::Arg>,
         value: &std::ffi::OsStr,
     ) -> std::result::Result<Self::Value, clap::Error> {
-        let possible_values = iter::once("all")
-            .chain(days::CLI_DAY_VALUES.iter().copied())
-            .collect::<Vec<_>>();
-        let possible_day_spec_values_parser =
-            clap::builder::PossibleValuesParser::new(possible_values);
-        let day_spec = possible_day_spec_values_parser.parse_ref(cmd, arg, value)?;
+        let day_spec = self.possible_values_parser.parse_ref(cmd, arg, value)?;
         Ok(if day_spec == "all" {
             CliRunDaySpec::All
         } else {
