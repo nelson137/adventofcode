@@ -119,8 +119,47 @@ fn part1_brute(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     Some(Box::new(invalid_id_acc))
 }
 
-fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    _ = input;
+fn is_repeated_digits_of_len(chunk_len: usize, id: &str) -> bool {
+    if id.len() % chunk_len != 0 {
+        return false;
+    }
 
-    None
+    let mut chunk1 = &id[..chunk_len];
+    let mut i = chunk_len;
+
+    while i < id.len() {
+        let next_i = i + chunk_len;
+        let chunk2 = &id[i..next_i];
+        if chunk1 != chunk2 {
+            return false;
+        }
+        chunk1 = chunk2;
+        i = next_i;
+    }
+
+    true
+}
+
+fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
+    let mut id_string = String::new();
+    let mut invalid_id_acc = 0_u64;
+
+    for ProductIdRange { raw_start, raw_end } in parse_product_id_ranges(input) {
+        let start: u64 = raw_start.parse().unwrap();
+        let end: u64 = raw_end.parse().unwrap();
+
+        for id in start..=end {
+            id_string.clear();
+            write!(&mut id_string, "{id}").unwrap();
+
+            for len in 1..=id_string.len() / 2 {
+                if is_repeated_digits_of_len(len, &id_string) {
+                    invalid_id_acc += id;
+                    break;
+                }
+            }
+        }
+    }
+
+    Some(Box::new(invalid_id_acc))
 }
