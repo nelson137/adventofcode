@@ -1,4 +1,4 @@
-use std::{collections, hash};
+use std::{collections, fmt, hash, ops};
 
 #[inline(always)]
 pub fn count_digits(x: u64) -> u64 {
@@ -122,6 +122,138 @@ fn sort_radix8_impl(values: &mut [u8], bin_mask: u8) {
 
     if i_1bin_start < values.len() - 1 {
         sort_radix8_impl(&mut values[i_1bin_start..], next_bin_mask);
+    }
+}
+
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub struct Pos {
+    pub row: u32,
+    pub col: u32,
+}
+
+impl Pos {
+    pub const fn new(row: usize, col: usize) -> Self {
+        Self {
+            row: row as u32,
+            col: col as u32,
+        }
+    }
+}
+
+impl Pos {
+    pub fn nn(self) -> Self {
+        Self {
+            row: self.row - 1,
+            col: self.col,
+        }
+    }
+
+    pub fn ne(self) -> Self {
+        Self {
+            row: self.row - 1,
+            col: self.col + 1,
+        }
+    }
+
+    pub fn ee(self) -> Self {
+        Self {
+            row: self.row,
+            col: self.col + 1,
+        }
+    }
+
+    pub fn se(self) -> Self {
+        Self {
+            row: self.row + 1,
+            col: self.col + 1,
+        }
+    }
+
+    pub fn ss(self) -> Self {
+        Self {
+            row: self.row + 1,
+            col: self.col,
+        }
+    }
+
+    pub fn sw(self) -> Self {
+        Self {
+            row: self.row + 1,
+            col: self.col - 1,
+        }
+    }
+
+    pub fn ww(self) -> Self {
+        Self {
+            row: self.row,
+            col: self.col - 1,
+        }
+    }
+
+    pub fn nw(self) -> Self {
+        Self {
+            row: self.row - 1,
+            col: self.col - 1,
+        }
+    }
+}
+
+impl fmt::Debug for Pos {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[{},{}]", self.row, self.col)
+    }
+}
+
+impl ops::Add for Pos {
+    type Output = Pos;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            row: self.row + rhs.row,
+            col: self.col + rhs.col,
+        }
+    }
+}
+
+impl ops::AddAssign for Pos {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs;
+    }
+}
+
+impl ops::Sub for Pos {
+    type Output = Pos;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            row: self.row - rhs.row,
+            col: self.col - rhs.col,
+        }
+    }
+}
+
+impl ops::SubAssign for Pos {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
+    }
+}
+
+pub trait Grid2D {
+    type Item;
+    fn grid_inner(&self) -> &[&[Self::Item]];
+}
+
+pub trait GridIndex2D<Out>: Grid2D<Item = Out> {
+    fn index_2d(&self, pos: Pos) -> &Out;
+}
+
+impl<G, Out> GridIndex2D<Out> for G
+where
+    G: Grid2D<Item = Out>,
+{
+    #[inline(always)]
+    fn index_2d(&self, pos: Pos) -> &Out {
+        &self.grid_inner()[pos.row as usize][pos.col as usize]
     }
 }
 
