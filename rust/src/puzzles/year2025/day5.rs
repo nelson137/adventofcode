@@ -1,4 +1,4 @@
-use std::ops;
+use std::{cmp, ops};
 
 inventory::submit!(crate::days::DayModule::new(2025, 5).with_executors(
     crate::day_part_executors![part1],
@@ -6,13 +6,28 @@ inventory::submit!(crate::days::DayModule::new(2025, 5).with_executors(
 ));
 
 struct IngredientDatabase<It> {
-    fresh_ingredient_id_ranges: Vec<ops::RangeInclusive<u64>>,
+    fresh_ingredient_id_range_buckets: Vec<IdRangeBucket>,
     available_ingredient_ids_iter: It,
+}
+
+struct IdRangeBucket {
+    ranges: Vec<ops::RangeInclusive<u64>>,
+    max: u64,
+}
+
+impl IdRangeBucket {
+    fn new(range: ops::RangeInclusive<u64>) -> Self {
+        let max = *range.end();
+        Self {
+            ranges: vec![range],
+            max,
+        }
+    }
 }
 
 fn parse_ingredient_database(input: &str) -> IngredientDatabase<impl Iterator<Item = &str>> {
     let mut iter = input.lines();
-    let mut fresh_ingredient_id_ranges = Vec::<ops::RangeInclusive<u64>>::new();
+    let mut fresh_ingredient_id_ranges = Vec::new();
 
     loop {
         let Some(line) = iter.next() else {
@@ -27,8 +42,24 @@ fn parse_ingredient_database(input: &str) -> IngredientDatabase<impl Iterator<It
         fresh_ingredient_id_ranges.push(range);
     }
 
+    // Sort by range start asc.
+    fresh_ingredient_id_ranges.sort_unstable_by(|a, b| a.start().cmp(b.start()));
+
+    let mut fresh_ingredient_id_range_buckets = Vec::<IdRangeBucket>::new();
+
+    'ranges: for range in &fresh_ingredient_id_ranges {
+        for bucket in &mut fresh_ingredient_id_range_buckets {
+            if *range.start() > bucket.max {
+                bucket.ranges.push(range.clone());
+                bucket.max = cmp::max(bucket.max, *range.end());
+                continue 'ranges;
+            }
+        }
+        fresh_ingredient_id_range_buckets.push(IdRangeBucket::new(range.clone()));
+    }
+
     IngredientDatabase {
-        fresh_ingredient_id_ranges,
+        fresh_ingredient_id_range_buckets,
         available_ingredient_ids_iter: iter,
     }
 }
@@ -42,11 +73,17 @@ where
 
         for line in &mut self.available_ingredient_ids_iter {
             let id: u64 = line.parse().unwrap();
-            for range in &self.fresh_ingredient_id_ranges {
-                if range.contains(&id) {
-                    count += 1;
-                    break;
-                }
+
+            if self.fresh_ingredient_id_range_buckets.iter().any(move |b| {
+                b.ranges
+                    .binary_search_by(move |r| match () {
+                        _ if r.contains(&id) => cmp::Ordering::Equal,
+                        _ if *r.end() < id => cmp::Ordering::Less,
+                        _ => cmp::Ordering::Greater,
+                    })
+                    .is_ok()
+            }) {
+                count += 1;
             }
         }
 
