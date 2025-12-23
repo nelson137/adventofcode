@@ -238,6 +238,34 @@ impl ops::SubAssign for Pos {
     }
 }
 
+pub trait Grid1D {
+    type Item;
+    fn extent(&self) -> usize;
+    fn grid_inner(&self) -> &[Self::Item];
+    fn grid_inner_mut(&mut self) -> &mut [Self::Item];
+}
+
+pub trait GridIndex1D<Out> {
+    fn index_1d(&self, pos: Pos) -> &Out;
+    fn index_1d_mut(&mut self, pos: Pos) -> &mut Out;
+}
+
+impl<G, Out> GridIndex1D<Out> for G
+where
+    G: Grid1D<Item = Out>,
+{
+    #[inline(always)]
+    fn index_1d(&self, pos: Pos) -> &Out {
+        &self.grid_inner()[pos.row as usize * self.extent() + pos.col as usize]
+    }
+
+    #[inline(always)]
+    fn index_1d_mut(&mut self, pos: Pos) -> &mut Out {
+        let extent = self.extent();
+        &mut self.grid_inner_mut()[pos.row as usize * extent + pos.col as usize]
+    }
+}
+
 pub trait Grid2D {
     type Item;
     fn grid_inner(&self) -> &[&[Self::Item]];
