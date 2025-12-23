@@ -9,7 +9,7 @@ use anyhow::{Result, bail};
 use criterion::{BenchmarkId, Criterion};
 use crossterm::style;
 
-type YearAndDay = (&'static str, u32);
+type YearAndDay = (u32, u32);
 
 pub struct DayModule {
     key: YearAndDay,
@@ -18,7 +18,7 @@ pub struct DayModule {
 }
 
 impl DayModule {
-    pub const fn new(year: &'static str, day: u32) -> Self {
+    pub const fn new(year: u32, day: u32) -> Self {
         Self {
             key: (year, day),
             executors: (&[], &[]),
@@ -206,7 +206,7 @@ type DayVisualizers = (Option<DayPartVisualizerFn>, Option<DayPartVisualizerFn>)
 type DayPartVisualizerFn = DayPartExecutorFn;
 
 pub(crate) fn execute_day(
-    year: &str,
+    year: u32,
     day_i: u32,
     part1: bool,
     part2: bool,
@@ -235,7 +235,7 @@ pub(crate) fn execute_day(
 
 pub(crate) fn bench_day(
     c: &mut Criterion,
-    year: &str,
+    year: u32,
     day_i: u32,
     part1: bool,
     part2: bool,
@@ -256,7 +256,7 @@ pub(crate) fn bench_day(
 fn bench_day_inner(
     c: &mut Criterion,
     day_executors: &DayExecutors,
-    year: &str,
+    year: u32,
     day_i: u32,
     part1: bool,
     part2: bool,
@@ -298,6 +298,6 @@ fn bench_day_inner(
     Ok(())
 }
 
-pub(crate) fn get_day_visualizers(year: &str, day_i: u32) -> Option<&DayVisualizers> {
+pub(crate) fn get_day_visualizers(year: u32, day_i: u32) -> Option<&'static DayVisualizers> {
     DAY_VISUALIZERS.get(&(year, day_i))
 }

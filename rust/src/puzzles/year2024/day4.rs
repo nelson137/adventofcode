@@ -2,7 +2,7 @@ use std::{fmt, ops::Index};
 
 use paste::paste;
 
-inventory::submit!(crate::days::DayModule::new("2024", 4).with_executors(
+inventory::submit!(crate::days::DayModule::new(2024, 4).with_executors(
     crate::day_part_executors![part1],
     crate::day_part_executors![part2],
 ));

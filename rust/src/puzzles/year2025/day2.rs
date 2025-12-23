@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use adventofcode::count_digits;
 
-inventory::submit!(crate::days::DayModule::new("2025", 2).with_executors(
+inventory::submit!(crate::days::DayModule::new(2025, 2).with_executors(
     crate::day_part_executors![part1_fast, part1_brute],
     crate::day_part_executors![part2],
 ));

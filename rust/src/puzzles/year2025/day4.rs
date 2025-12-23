@@ -1,6 +1,6 @@
 use adventofcode::{Grid1D, Grid2D, GridIndex1D, GridIndex2D, Pos};
 
-inventory::submit!(crate::days::DayModule::new("2025", 4).with_executors(
+inventory::submit!(crate::days::DayModule::new(2025, 4).with_executors(
     crate::day_part_executors![part1],
     crate::day_part_executors![part2],
 ));

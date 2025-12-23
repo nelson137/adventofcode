@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt, num::NonZeroU8, ops};
 
-inventory::submit!(crate::days::DayModule::new("2024", 8).with_executors(
+inventory::submit!(crate::days::DayModule::new(2024, 8).with_executors(
     crate::day_part_executors![part1],
     crate::day_part_executors![part2],
 ));

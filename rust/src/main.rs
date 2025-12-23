@@ -105,11 +105,11 @@ struct CliBenchCommand {
 
 impl CliBenchCommand {
     fn run(self) -> Result<()> {
-        let input = input::get_input(&self.year.0, self.day.0)?;
+        let input = input::get_input(self.year.0, self.day.0)?;
         let mut criterion = criterion::Criterion::default();
         if days::bench_day(
             &mut criterion,
-            &self.year.0,
+            self.year.0,
             self.day.0,
             self.parts.part1(),
             self.parts.part2(),
@@ -147,9 +147,9 @@ struct CliCommitCommand {
 
 impl CliCommitCommand {
     fn run(self) -> Result<()> {
-        let input = input::get_input(&self.year.0, self.day.0)?;
+        let input = input::get_input(self.year.0, self.day.0)?;
 
-        let Some(result) = days::execute_day(&self.year.0, self.day.0, true, true, input) else {
+        let Some(result) = days::execute_day(self.year.0, self.day.0, true, true, input) else {
             println!(
                 "No implementation for year {} day {}.",
                 &self.year.0, self.day.0
@@ -157,7 +157,7 @@ impl CliCommitCommand {
             return Ok(());
         };
 
-        let existing_commits = commit::get_existing_commits(&self.year.0, self.day.0)?;
+        let existing_commits = commit::get_existing_commits(self.year.0, self.day.0)?;
 
         if let Some(result1) = result.0 {
             let commit1 = commit::DayPartCommit::new(&result1.answer);
@@ -173,7 +173,7 @@ impl CliCommitCommand {
                     );
                 }
                 _ => {
-                    commit1.write(&self.year.0, self.day.0, Part::Part1)?;
+                    commit1.write(self.year.0, self.day.0, Part::Part1)?;
                     self.print_committed(Part::Part1, &commit1.answer);
                 }
             }
@@ -193,7 +193,7 @@ impl CliCommitCommand {
                     );
                 }
                 _ => {
-                    commit2.write(&self.year.0, self.day.0, Part::Part2)?;
+                    commit2.write(self.year.0, self.day.0, Part::Part2)?;
                     self.print_committed(Part::Part2, &commit2.answer);
                 }
             }
@@ -273,15 +273,15 @@ impl CliInputCommand {
         match self {
             Self::Get { test, year, day } => {
                 if let Some(test_i) = test {
-                    let day_test_input = input::get_test_input(&year.0, day.0, test_i)?;
+                    let day_test_input = input::get_test_input(year.0, day.0, test_i)?;
                     print!("{day_test_input}");
                 } else {
-                    let day_input = input::get_input(&year.0, day.0)?;
+                    let day_input = input::get_input(year.0, day.0)?;
                     print!("{day_input}");
                 }
             }
             Self::SetTest { year, day, test } => {
-                input::set_test_input(&year.0, day.0, test)?;
+                input::set_test_input(year.0, day.0, test)?;
             }
         }
         Ok(())
@@ -317,13 +317,13 @@ impl CliRunCommand {
 
     fn run_one(self, day: Day) -> Result<()> {
         let input = if let Some(test_i) = self.test {
-            input::get_test_input(&self.year.0, day.0, test_i)?
+            input::get_test_input(self.year.0, day.0, test_i)?
         } else {
-            input::get_input(&self.year.0, day.0)?
+            input::get_input(self.year.0, day.0)?
         };
 
         let Some(result) = days::execute_day(
-            &self.year.0,
+            self.year.0,
             day.0,
             self.parts.part1(),
             self.parts.part2(),
@@ -333,7 +333,7 @@ impl CliRunCommand {
             return Ok(());
         };
 
-        let existing_commits = commit::get_existing_commits(&self.year.0, day.0)?;
+        let existing_commits = commit::get_existing_commits(self.year.0, day.0)?;
 
         if let Some(r1) = result.0 {
             let commit1 = commit::DayPartCommit::new(&r1.answer);
@@ -391,9 +391,9 @@ impl CliRunCommand {
         let results = (1_u32..=25)
             .map(
                 |day_i| -> Result<(u32, commit::DayCommits, days::DayResult)> {
-                    let commits = commit::get_existing_commits(&self.year.0, day_i)?;
-                    let input = input::get_input(&self.year.0, day_i)?;
-                    let result = days::execute_day(&self.year.0, day_i, true, true, input)
+                    let commits = commit::get_existing_commits(self.year.0, day_i)?;
+                    let input = input::get_input(self.year.0, day_i)?;
+                    let result = days::execute_day(self.year.0, day_i, true, true, input)
                         .unwrap_or_default();
                     Ok((day_i, commits, result))
                 },
@@ -506,7 +506,7 @@ struct CliVisualizeCommandPartsGroup {
 
 impl CliVisualizeCommand {
     fn run(self) -> Result<()> {
-        let Some(visualizers) = days::get_day_visualizers(&self.year.0, self.day.0) else {
+        let Some(visualizers) = days::get_day_visualizers(self.year.0, self.day.0) else {
             println!(
                 "No implementation for year {} day {}.",
                 &self.year.0, self.day.0
@@ -525,9 +525,9 @@ impl CliVisualizeCommand {
         };
 
         let input = if let Some(test_i) = self.test {
-            input::get_test_input(&self.year.0, self.day.0, test_i)?
+            input::get_test_input(self.year.0, self.day.0, test_i)?
         } else {
-            input::get_input(&self.year.0, self.day.0)?
+            input::get_input(self.year.0, self.day.0)?
         };
 
         if let Some(answer) = visualize(&input) {
@@ -567,7 +567,7 @@ impl CliDefaultedPartsGroup {
 }
 
 #[derive(Clone, Debug)]
-struct Year(String);
+struct Year(u32);
 
 const CLI_YEARS: &[&str] = &["2024", "2025"];
 
@@ -593,8 +593,11 @@ impl clap::builder::TypedValueParser for YearParser {
         arg: Option<&clap::Arg>,
         value: &std::ffi::OsStr,
     ) -> std::result::Result<Self::Value, clap::Error> {
-        let year = self.possible_values_parser.parse_ref(cmd, arg, value)?;
-        Ok(Year(year))
+        let year_raw = self.possible_values_parser.parse_ref(cmd, arg, value)?;
+        match year_raw.parse() {
+            Ok(y) => Ok(Year(y)),
+            Err(_) => Err(clap::Error::new(clap::error::ErrorKind::InvalidValue)),
+        }
     }
 }
 

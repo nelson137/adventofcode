@@ -14,8 +14,8 @@ pub(crate) struct DayCommits(
     pub(crate) Option<DayPartCommit>,
 );
 
-fn create_answers_dir(year: &str) -> Result<PathBuf> {
-    let dir = PUZZLE_ANSWERS_DIR.join(year);
+fn create_answers_dir(year: u32) -> Result<PathBuf> {
+    let dir = PUZZLE_ANSWERS_DIR.join(year.to_string());
     fs::create_dir_all(&dir).with_context(|| {
         format!(
             "failed to create puzzle answers directory: {}",
@@ -61,7 +61,7 @@ impl DayPartCommit {
         })
     }
 
-    pub(crate) fn write(&self, year: &str, day_i: u32, part: crate::Part) -> Result<()> {
+    pub(crate) fn write(&self, year: u32, day_i: u32, part: crate::Part) -> Result<()> {
         let dir = create_answers_dir(year)?;
 
         let path = dir.join(format!("day{day_i}.{}", part.number()));
@@ -72,7 +72,7 @@ impl DayPartCommit {
     }
 }
 
-pub(crate) fn get_existing_commits(year: &str, day_i: u32) -> Result<DayCommits> {
+pub(crate) fn get_existing_commits(year: u32, day_i: u32) -> Result<DayCommits> {
     let dir = create_answers_dir(year)?;
     let commit1_path = dir.join(format!("day{day_i}.1"));
     let commit2_path = dir.join(format!("day{day_i}.2"));

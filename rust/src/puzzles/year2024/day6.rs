@@ -7,7 +7,7 @@ use std::{
 mod viz_gtk;
 
 inventory::submit!(
-    crate::days::DayModule::new("2024", 6)
+    crate::days::DayModule::new(2024, 6)
         .with_executors(
             crate::day_part_executors![part1],
             crate::day_part_executors![part2_fast, part2_brute],

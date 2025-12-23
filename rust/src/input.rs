@@ -14,11 +14,11 @@ use reqwest::{
 pub(crate) static PUZZLE_INPUTS_DIR: LazyLock<PathBuf> =
     LazyLock::new(|| Path::new(crate::PUZZLE_DIR).join("inputs"));
 
-fn inputs_dir(year: &str) -> PathBuf {
-    PUZZLE_INPUTS_DIR.join(year)
+fn inputs_dir(year: u32) -> PathBuf {
+    PUZZLE_INPUTS_DIR.join(year.to_string())
 }
 
-fn create_inputs_dir(year: &str) -> Result<PathBuf> {
+fn create_inputs_dir(year: u32) -> Result<PathBuf> {
     let dir = inputs_dir(year);
     fs::create_dir_all(&dir).with_context(|| {
         format!(
@@ -29,7 +29,7 @@ fn create_inputs_dir(year: &str) -> Result<PathBuf> {
     Ok(dir)
 }
 
-pub(crate) fn get_input(year: &str, day_i: u32) -> Result<String> {
+pub(crate) fn get_input(year: u32, day_i: u32) -> Result<String> {
     let dir = create_inputs_dir(year)?;
     let input_path = dir.join(format!("day{day_i}"));
 
@@ -66,7 +66,7 @@ fn test_input_path(dir: &Path, day_i: u32, input_i: u32) -> PathBuf {
     dir.join(format!("day{day_i}-test{input_i}"))
 }
 
-pub(crate) fn get_test_input(year: &str, day_i: u32, input_i: u32) -> Result<String> {
+pub(crate) fn get_test_input(year: u32, day_i: u32, input_i: u32) -> Result<String> {
     let dir = inputs_dir(year);
     let test_input_path = test_input_path(&dir, day_i, input_i);
 
@@ -78,7 +78,7 @@ pub(crate) fn get_test_input(year: &str, day_i: u32, input_i: u32) -> Result<Str
     })
 }
 
-pub(crate) fn set_test_input(year: &str, day_i: u32, input_i: u32) -> Result<()> {
+pub(crate) fn set_test_input(year: u32, day_i: u32, input_i: u32) -> Result<()> {
     let dir = create_inputs_dir(year)?;
 
     println!("Enter test input below, press ^D when done");

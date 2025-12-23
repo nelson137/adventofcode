@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-inventory::submit!(crate::days::DayModule::new("2024", 9).with_executors(
+inventory::submit!(crate::days::DayModule::new(2024, 9).with_executors(
     crate::day_part_executors![part1_v2, part1],
     crate::day_part_executors![part2],
 ));
