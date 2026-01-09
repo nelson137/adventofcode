@@ -100,7 +100,58 @@ fn part1(input: &str) -> Option<Box<dyn std::fmt::Display>> {
 }
 
 fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
-    _ = input;
+    let mut fresh_ingredient_id_ranges = Vec::new();
 
-    None
+    for line in input.lines() {
+        if line.is_empty() {
+            break;
+        }
+
+        let (min, max) = line.split_once('-').unwrap();
+        let start = min.parse::<u64>().unwrap();
+        let end = max.parse().unwrap();
+        fresh_ingredient_id_ranges.push(start..=end);
+    }
+
+    loop {
+        let mut has_overlapping = false;
+
+        for i in (0..fresh_ingredient_id_ranges.len()).rev() {
+            let r = &fresh_ingredient_id_ranges[i];
+            let (r_start, r_end) = (*r.start(), *r.end());
+            if r_start == u64::MAX {
+                continue;
+            }
+
+            for j in 0..fresh_ingredient_id_ranges.len() {
+                if j == i {
+                    continue;
+                }
+                let range = &mut fresh_ingredient_id_ranges[j];
+                if *range.start() == u64::MAX {
+                    continue;
+                }
+                if range.contains(&r_start) || range.contains(&r_end) {
+                    has_overlapping = true;
+                    let start = cmp::min(*range.start(), r_start);
+                    let end = cmp::max(*range.end(), r_end);
+                    *range = start..=end;
+                    fresh_ingredient_id_ranges[i] = u64::MAX..=u64::MAX;
+                    break;
+                }
+            }
+        }
+
+        if !has_overlapping {
+            break;
+        }
+    }
+
+    let count = fresh_ingredient_id_ranges
+        .iter()
+        .filter(|r| *r.start() != u64::MAX)
+        .map(|r| *r.end() - *r.start() + 1)
+        .sum::<u64>();
+
+    Some(Box::new(count))
 }
