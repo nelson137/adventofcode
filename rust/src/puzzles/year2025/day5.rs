@@ -113,6 +113,9 @@ fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
         fresh_ingredient_id_ranges.push(start..=end);
     }
 
+    // Sort by range start asc.
+    fresh_ingredient_id_ranges.sort_unstable_by(|a, b| a.start().cmp(b.start()));
+
     loop {
         let mut has_overlapping = false;
 
