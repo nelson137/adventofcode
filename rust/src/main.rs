@@ -1,6 +1,6 @@
 #![feature(iter_map_windows)]
 
-use std::{fmt, iter};
+use std::{collections, fmt, iter, sync};
 
 use anyhow::{Result, bail};
 use clap::{Args, Parser, Subcommand};
@@ -159,85 +159,79 @@ impl CliCommitCommand {
 
         let existing_commits = commit::get_existing_commits(self.year.0, self.day.0)?;
 
-        if let Some(result1) = result.0 {
-            let commit1 = commit::DayPartCommit::new(&result1.answer);
-            match existing_commits.0 {
-                Some(existing1) if commit1 == existing1 => {
-                    self.print_already_committed(Part::Part1, &commit1.answer);
-                }
-                Some(existing1) if !self.force => {
-                    self.print_incorrect_answer_diff(
-                        Part::Part1,
-                        &existing1.answer,
-                        &commit1.answer,
-                    );
-                }
-                _ => {
-                    commit1.write(self.year.0, self.day.0, Part::Part1)?;
-                    self.print_committed(Part::Part1, &commit1.answer);
-                }
-            }
+        self.print_part(Part::Part1, &result.0, existing_commits.0.as_ref())?;
+        self.print_part(Part::Part2, &result.1, existing_commits.1.as_ref())?;
+
+        Ok(())
+    }
+
+    fn print_part(
+        &self,
+        part: Part,
+        day_results: &[Option<days::DayPartResult>],
+        existing_commit: Option<&commit::DayPartCommit>,
+    ) -> Result<()> {
+        if day_results.len() > 1 {
+            eprintln!(
+                "Warning: {part} has multiple implementations, only the first will be committed"
+            );
         }
 
-        if let Some(result2) = result.1 {
-            let commit2 = commit::DayPartCommit::new(&result2.answer);
-            match existing_commits.1 {
-                Some(existing2) if commit2 == existing2 => {
-                    self.print_already_committed(Part::Part2, &commit2.answer);
+        if let Some(r) = &day_results[0] {
+            let result_commit = commit::DayPartCommit::new(&r.answer);
+            match existing_commit {
+                Some(existing) if result_commit == *existing => {
+                    print_already_committed(part, &result_commit.answer);
                 }
-                Some(existing2) if !self.force => {
-                    self.print_incorrect_answer_diff(
-                        Part::Part2,
-                        &existing2.answer,
-                        &commit2.answer,
-                    );
+                Some(existing1) if !self.force => {
+                    print_incorrect_answer_diff(part, &existing1.answer, &result_commit.answer);
                 }
                 _ => {
-                    commit2.write(self.year.0, self.day.0, Part::Part2)?;
-                    self.print_committed(Part::Part2, &commit2.answer);
+                    result_commit.write(self.year.0, self.day.0, part)?;
+                    print_committed(part, &result_commit.answer);
                 }
             }
         }
 
         Ok(())
     }
+}
 
-    fn print_committed(&self, part: Part, answer: &str) {
-        println!(
-            "{}: {}  {}    {}",
-            part,
-            answer.trim(),
-            "✓".bold().green(),
-            "(committed)".dark_grey()
-        );
-    }
+fn print_committed(part: Part, answer: &str) {
+    println!(
+        "{}: {}  {}    {}",
+        part,
+        answer.trim(),
+        "✓".bold().green(),
+        "(committed)".dark_grey()
+    );
+}
 
-    fn print_already_committed(&self, part: Part, answer: &str) {
-        println!(
-            "{}: {}  {}    {}",
-            part,
-            answer.trim(),
-            "✓".bold().green(),
-            "(already committed)".dark_grey()
-        );
-    }
+fn print_already_committed(part: Part, answer: &str) {
+    println!(
+        "{}: {}  {}    {}",
+        part,
+        answer.trim(),
+        "✓".bold().green(),
+        "(already committed)".dark_grey()
+    );
+}
 
-    fn print_incorrect_answer_diff(&self, part: Part, commit_answer: &str, current_answer: &str) {
-        eprintln!(
-            "{}: {} answer does not match existing commit",
-            part,
-            "error".bold().red(),
-        );
-        eprintln!();
-        eprintln!("<<<<<<< commited answer");
-        eprintln!("{}", commit_answer.trim());
-        eprintln!("=======");
-        eprintln!("{}", current_answer.trim());
-        eprintln!(">>>>>>> current run answer");
-        eprintln!();
-        eprintln!("Use `--force` to overwrite");
-        eprintln!();
-    }
+fn print_incorrect_answer_diff(part: Part, commit_answer: &str, current_answer: &str) {
+    eprintln!(
+        "{}: {} answer does not match existing commit",
+        part,
+        "error".bold().red(),
+    );
+    eprintln!();
+    eprintln!("<<<<<<< commited answer");
+    eprintln!("{}", commit_answer.trim());
+    eprintln!("=======");
+    eprintln!("{}", current_answer.trim());
+    eprintln!(">>>>>>> current run answer");
+    eprintln!();
+    eprintln!("Use `--force` to overwrite");
+    eprintln!();
 }
 
 // ###################################################################
@@ -335,31 +329,36 @@ impl CliRunCommand {
 
         let existing_commits = commit::get_existing_commits(self.year.0, day.0)?;
 
-        if let Some(r1) = result.0 {
-            let commit1 = commit::DayPartCommit::new(&r1.answer);
-            let commit_status =
-                self.get_single_day_commit_status(existing_commits.0.as_ref(), &commit1);
-            println!(
-                "Part 1: {answer}{status}    {duration:#}",
-                answer = r1.answer,
-                status = commit_status,
-                duration = r1.duration,
-            );
-        }
-
-        if let Some(r2) = result.1 {
-            let commit2 = commit::DayPartCommit::new(&r2.answer);
-            let commit_status =
-                self.get_single_day_commit_status(existing_commits.1.as_ref(), &commit2);
-            println!(
-                "Part 2: {answer}{status}    {duration:#}",
-                answer = r2.answer,
-                status = commit_status,
-                duration = r2.duration,
-            );
-        }
+        self.print_day_results(Part::Part1, &result.0, existing_commits.0.as_ref());
+        self.print_day_results(Part::Part2, &result.1, existing_commits.1.as_ref());
 
         Ok(())
+    }
+
+    fn print_day_results(
+        &self,
+        part: Part,
+        day_results: &[Option<days::DayPartResult>],
+        existing_commit: Option<&commit::DayPartCommit>,
+    ) {
+        let multiple = day_results.len() > 1;
+        for (i, result) in day_results.iter().enumerate() {
+            if let Some(r) = result {
+                let sub_part = if multiple {
+                    format!(".{}", (b'a' + i as u8) as char)
+                } else {
+                    String::new()
+                };
+                let commit = commit::DayPartCommit::new(&r.answer);
+                let commit_status = self.get_single_day_commit_status(existing_commit, &commit);
+                println!(
+                    "{part}{sub_part}: {answer}{status}    {duration:#}",
+                    answer = r.answer,
+                    status = commit_status,
+                    duration = r.duration,
+                );
+            }
+        }
     }
 
     fn get_single_day_commit_status(
@@ -388,7 +387,12 @@ impl CliRunCommand {
         const DURATION_WIDTH: usize = 8;
         const PART_WIDTH: usize = STATUS_WIDTH + DURATION_WIDTH;
 
-        let results = (1_u32..=25)
+        static DAYS_IN_YEAR: sync::LazyLock<collections::HashMap<Year, u32>> =
+            sync::LazyLock::new(|| collections::HashMap::from_iter([(Year(2025), 12)]));
+
+        let n_days = DAYS_IN_YEAR.get(&self.year).copied().unwrap_or(25);
+
+        let results = (1_u32..=n_days)
             .map(
                 |day_i| -> Result<(u32, commit::DayCommits, days::DayResult)> {
                     let commits = commit::get_existing_commits(self.year.0, day_i)?;
@@ -399,6 +403,19 @@ impl CliRunCommand {
                 },
             )
             .collect::<Result<Vec<_>>>()?;
+
+        for (day_i, _, day_results) in &results {
+            for (part, results) in [
+                (Part::Part1, day_results.0.as_slice()),
+                (Part::Part2, day_results.1.as_slice()),
+            ] {
+                if results.len() > 1 {
+                    eprintln!(
+                        "Warning: Day {day_i} {part} has multiple implementations, only the first will be shown"
+                    );
+                }
+            }
+        }
 
         println!(
             "{spacer:gutter_w$} {spacer:padding_w$}{p1}{spacer:padding_w$}{p2}",
@@ -425,9 +442,14 @@ impl CliRunCommand {
                 divider = "│".dark_grey(),
             );
 
+            if day_result.0.is_empty() || day_result.1.is_empty() {
+                println!();
+                continue;
+            }
+
             for (existing_commit, result) in [
-                (day_commits.0.as_ref(), day_result.0.as_ref()),
-                (day_commits.1.as_ref(), day_result.1.as_ref()),
+                (day_commits.0.as_ref(), day_result.0[0].as_ref()),
+                (day_commits.1.as_ref(), day_result.1[0].as_ref()),
             ] {
                 if let Some(r) = result {
                     let commit = commit::DayPartCommit::new(&r.answer);
@@ -566,7 +588,7 @@ impl CliDefaultedPartsGroup {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct Year(u32);
 
 const CLI_YEARS: &[&str] = &["2024", "2025"];

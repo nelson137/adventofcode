@@ -87,8 +87,8 @@ pub(crate) type DayPartAnswer = Box<dyn ::std::fmt::Display>;
 
 #[derive(Default)]
 pub(crate) struct DayResult(
-    pub(crate) Option<DayPartResult>,
-    pub(crate) Option<DayPartResult>,
+    pub(crate) Vec<Option<DayPartResult>>,
+    pub(crate) Vec<Option<DayPartResult>>,
 );
 
 pub(crate) struct DayPartResult {
@@ -214,22 +214,26 @@ pub(crate) fn execute_day(
 ) -> Option<DayResult> {
     let executors = DAY_EXECUTORS.get(&(year, day_i))?;
 
-    let run_part = |should_run: bool, part: DayPartExecutorFn| -> Option<DayPartResult> {
+    let run_part = |should_run: bool, day: &[DayPartExecutor]| -> Vec<Option<DayPartResult>> {
         if should_run {
-            let t = Instant::now();
-            let answer = part(&input);
-            let duration = t.elapsed();
-            answer.map(|answer| DayPartResult {
-                answer,
-                duration: DayPartDuration(duration),
-            })
+            day.iter()
+                .map(|d| {
+                    let t = Instant::now();
+                    let answer = (d.executor)(&input);
+                    let duration = t.elapsed();
+                    answer.map(|answer| DayPartResult {
+                        answer,
+                        duration: DayPartDuration(duration),
+                    })
+                })
+                .collect()
         } else {
-            None
+            vec![None]
         }
     };
 
-    let part1_result = run_part(part1, executors.0[0].executor);
-    let part2_result = run_part(part2, executors.1[0].executor);
+    let part1_result = run_part(part1, executors.0);
+    let part2_result = run_part(part2, executors.1);
     Some(DayResult(part1_result, part2_result))
 }
 
