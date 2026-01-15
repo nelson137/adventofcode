@@ -186,37 +186,21 @@ fn part2(input: &str) -> Option<Box<dyn std::fmt::Display>> {
     // Sort by range start asc.
     fresh_ingredient_id_ranges.sort_unstable_by(|a, b| a.start().cmp(b.start()));
 
-    loop {
-        let mut has_overlapping = false;
+    let mut max = 0;
+    let mut max_i = 0;
 
-        for i in (0..fresh_ingredient_id_ranges.len()).rev() {
-            let r = &fresh_ingredient_id_ranges[i];
-            let (r_start, r_end) = (*r.start(), *r.end());
-            if r_start == u64::MAX {
-                continue;
-            }
-
-            for j in 0..fresh_ingredient_id_ranges.len() {
-                if j == i {
-                    continue;
-                }
-                let range = &mut fresh_ingredient_id_ranges[j];
-                if *range.start() == u64::MAX {
-                    continue;
-                }
-                if range.contains(&r_start) || range.contains(&r_end) {
-                    has_overlapping = true;
-                    let start = cmp::min(*range.start(), r_start);
-                    let end = cmp::max(*range.end(), r_end);
-                    *range = start..=end;
-                    fresh_ingredient_id_ranges[i] = u64::MAX..=u64::MAX;
-                    break;
-                }
-            }
-        }
-
-        if !has_overlapping {
-            break;
+    for i in 0..fresh_ingredient_id_ranges.len() {
+        let range = &fresh_ingredient_id_ranges[i];
+        let (range_start, range_end) = (*range.start(), *range.end());
+        if range_start != u64::MAX && range_start <= max {
+            let start = *fresh_ingredient_id_ranges[max_i].start();
+            let end = cmp::max(max, range_end);
+            fresh_ingredient_id_ranges[max_i] = start..=end;
+            fresh_ingredient_id_ranges[i] = u64::MAX..=u64::MAX;
+            max = end;
+        } else if range_end > max {
+            max = range_end;
+            max_i = i;
         }
     }
 
